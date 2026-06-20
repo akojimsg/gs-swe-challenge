@@ -38,6 +38,8 @@ breakers, rate limiting), schema isolation, and end-to-end observability.
 
 ## Architecture
 
+![System architecture — React SPA → Spring Cloud Gateway → six services over REST/gRPC/Redis Streams, one PostgreSQL (5 schemas), one Redis](technical-design/assets/architecture.png)
+
 ### Services
 
 | Service       | Port | Responsibility |
