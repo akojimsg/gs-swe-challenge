@@ -9,6 +9,7 @@ import com.gsswec.ecommerce.users.application.usecase.GetUserProfile;
 import com.gsswec.ecommerce.users.application.usecase.ListUsers;
 import com.gsswec.ecommerce.users.application.usecase.UpdateUserProfile;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/users")
 @Tag(name = "Users", description = "Self-service profile and admin user management")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final GetUserProfile getUserProfile;
