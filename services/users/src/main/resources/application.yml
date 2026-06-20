@@ -1,9 +1,35 @@
 spring:
   application:
     name: users
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:gsswec}
+    username: ${POSTGRES_USER:gsswec}
+    password: ${POSTGRES_PASSWORD:change_me_local_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: users_schema
+    open-in-view: false
+  flyway:
+    enabled: true
+    schemas: users_schema
+    default-schema: users_schema
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 server:
   port: 8081
+
+gsswec:
+  jwt:
+    secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}
+    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+    refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:7d}
 
 management:
   endpoints:
