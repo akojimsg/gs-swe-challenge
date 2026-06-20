@@ -29,6 +29,7 @@ These records use a lightweight [MADR](https://adr.github.io/madr/)-style format
 | [013](ADR-013-repo-layout.md) | Single root Gradle build in a polyglot monorepo | Repo layout | Accepted |
 | [014](ADR-014-api-documentation.md) | Code-first OpenAPI via springdoc, per-service export | API docs | Accepted |
 | [015](ADR-015-concurrency-and-locking.md) | Concurrency, locking (pessimistic vs optimistic), and latency model | Concurrency | Accepted |
+| [016](ADR-016-demo-seeding.md) | Demo data seeding via idempotent, API-driven `make seed` | Demo/seed | Accepted |
 
 ## Reading order
 
