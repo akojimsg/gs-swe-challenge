@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Enforce single-contributor identity (see CLAUDE.md — Commit attribution).
+# Blocks a commit whose author email is not the expected personal address,
+# preventing a work/employer identity from leaking into this personal repo.
+set -euo pipefail
+
+EXPECTED_EMAIL="akojimsg@gmail.com"
+
+author_email="$(git config user.email || true)"
+
+if [ "$author_email" != "$EXPECTED_EMAIL" ]; then
+  echo "✖ commit blocked: author email is '${author_email:-<unset>}'." >&2
+  echo "  This repo requires a single contributor: $EXPECTED_EMAIL" >&2
+  echo "  Fix:  git config user.email $EXPECTED_EMAIL" >&2
+  exit 1
+fi
+
+exit 0
