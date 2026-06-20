@@ -28,6 +28,7 @@ These records use a lightweight [MADR](https://adr.github.io/madr/)-style format
 | [012](ADR-012-oltp-olap.md) | OLTP/OLAP separation strategy | Analytics path | Accepted |
 | [013](ADR-013-repo-layout.md) | Single root Gradle build in a polyglot monorepo | Repo layout | Accepted |
 | [014](ADR-014-api-documentation.md) | Code-first OpenAPI via springdoc, per-service export | API docs | Accepted |
+| [015](ADR-015-concurrency-and-locking.md) | Concurrency, locking (pessimistic vs optimistic), and latency model | Concurrency | Accepted |
 
 ## Reading order
 
