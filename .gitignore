@@ -1,0 +1,60 @@
+# =============================================================================
+# gs-swe-challenge — .gitignore
+# =============================================================================
+
+# --- Environment / secrets ---------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Java / Gradle -----------------------------------------------------------
+.gradle/
+build/
+**/build/
+!**/src/**/build/
+out/
+*.class
+*.log
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+.gradletasknamecache
+
+# --- Spring Boot -------------------------------------------------------------
+*.original
+HELP.md
+
+# --- Node / Vite (frontend) --------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+
+# --- Test / coverage ---------------------------------------------------------
+coverage/
+test-results/
+playwright-report/
+.playwright/
+**/k6-results/
+
+# --- Docker ------------------------------------------------------------------
+**/.docker/
+
+# --- IDEs / editors ----------------------------------------------------------
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+
+# --- OS ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
