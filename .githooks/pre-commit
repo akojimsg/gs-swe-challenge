@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Enforce single-contributor identity (see CLAUDE.md — Commit attribution).
-# Blocks a commit whose author email is not the expected personal address,
-# preventing a work/employer identity from leaking into this personal repo.
 set -euo pipefail
 
 EXPECTED_EMAIL="akojimsg@gmail.com"

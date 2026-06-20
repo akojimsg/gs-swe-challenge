@@ -1,23 +1,14 @@
 #!/usr/bin/env bash
-# Strip AI co-author / attribution markers from commit messages.
-# This repo must show a single contributor (see CLAUDE.md — Commit attribution).
-# Removes any "Co-authored-by:" trailer naming an AI assistant, plus the
-# "Generated with ... Claude Code" marker line.
 set -euo pipefail
 
 msg_file="$1"
 
-# Drop AI co-author trailers and the "Generated with Claude Code" footer.
-# Patterns are ANCHORED to the start of a line (optionally after the robot
-# emoji) so that prose merely *mentioning* these strings is never stripped —
-# only genuine trailer/footer lines are. Case-insensitive on the trailer key.
 sed -i -E \
   -e '/^[[:space:]]*Co-authored-by:.*(claude|anthropic)/Id' \
   -e '/^🤖[[:space:]]*Generated with \[?Claude Code/d' \
   -e '/^Generated with \[?Claude Code/d' \
   "$msg_file"
 
-# Collapse any trailing blank lines left behind.
 sed -i -e :a -e '/^\n*$/{$d;N;ba}' "$msg_file"
 
 exit 0
