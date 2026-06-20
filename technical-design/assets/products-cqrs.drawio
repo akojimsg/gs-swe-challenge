@@ -1,0 +1,75 @@
+<mxfile host="app.diagrams.net" agent="gs-swe-challenge" version="24.0.0">
+  <diagram name="Products-CQRS" id="gsswec-cqrs-1">
+    <mxGraphModel dx="820" dy="520" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="520" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Products — CQRS: read model (Redis cache) vs write model (PostgreSQL)" style="text;html=1;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#26215C;" vertex="1" parent="1">
+          <mxGeometry x="30" y="18" width="720" height="26" as="geometry" />
+        </mxCell>
+
+        <!-- Entry points -->
+        <mxCell id="cmd" value="&lt;b&gt;Commands&lt;/b&gt;&lt;br&gt;Admin CRUD · CSV import" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#2C2C2A;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="118" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="qry" value="&lt;b&gt;Queries&lt;/b&gt;&lt;br&gt;Catalogue list · search" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#2C2C2A;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="330" width="170" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Use-case sides -->
+        <mxCell id="write" value="&lt;b&gt;Write side&lt;/b&gt;&lt;br&gt;ManageProduct · ImportCatalog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="265" y="118" width="195" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="read" value="&lt;b&gt;Read side&lt;/b&gt;&lt;br&gt;SearchProducts (cache-first)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="265" y="330" width="195" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Stores -->
+        <mxCell id="pg" value="&lt;b&gt;PostgreSQL 16&lt;/b&gt;&lt;br&gt;Write model · source of truth&lt;br&gt;products_schema" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#E1F5EE;strokeColor=#0F6E56;fontColor=#04342C;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="96" width="195" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="redis" value="&lt;b&gt;Redis cache&lt;/b&gt;&lt;br&gt;Read model · TTL 60s" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#4A1B0C;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="306" width="195" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Write flow -->
+        <mxCell id="e_cmd_write" value="command" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;fontSize=10;fontColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="cmd" target="write">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_write_pg" value="write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#0F6E56;strokeWidth=2;fontSize=10;fontColor=#0F6E56;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="write" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_write_evict" value="evict on write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#993C1D;fontSize=10;fontColor=#993C1D;exitX=1;exitY=0.85;entryX=0;entryY=0.2;" edge="1" parent="1" source="write" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Read flow -->
+        <mxCell id="e_qry_read" value="query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;fontSize=10;fontColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="qry" target="read">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_read_redis" value="1 · read (hit)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#993C1D;fontSize=10;fontColor=#993C1D;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" edge="1" parent="1" source="read" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_miss" value="2 · on miss → query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#0F6E56;fontSize=10;fontColor=#0F6E56;exitX=0.3;exitY=0;entryX=0.3;entryY=1;" edge="1" parent="1" source="redis" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_populate" value="3 · populate (60s)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#0F6E56;fontSize=10;fontColor=#0F6E56;exitX=0.7;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="pg" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Stock: always live -->
+        <mxCell id="e_stock" value="stock — live, never cached" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#534AB7;strokeWidth=2;fontSize=10;fontColor=#534AB7;exitX=1;exitY=0.15;entryX=0;entryY=0.9;" edge="1" parent="1" source="read" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Notes -->
+        <mxCell id="notes" value="Scope: Products catalogue only (ADR-011). Read model = Redis cache (60s TTL); write model = PostgreSQL (source of truth). Writes evict affected entries; the TTL backstops any missed eviction. Stock is never cached — read live so reservation operates on truth." style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontColor=#5F5E5A;whiteSpace=wrap;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="715" height="56" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,155 @@
+<mxfile host="65bd71144e">
+    <diagram name="Architecture" id="gsswec-arch-1">
+        <mxGraphModel dx="541" dy="244" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1120" pageHeight="720" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="gs-swe-challenge — Event-Driven E-Commerce Architecture" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#26215C;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="20" width="760" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend" value="── sync (REST / gRPC)&#xa;┄┄ async (events)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#5F5E5A;spacingLeft=6;whiteSpace=wrap;" parent="1" vertex="1">
+                    <mxGeometry x="640" y="92" width="280" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="docker" value="Docker Compose" style="rounded=1;arcSize=4;dashed=1;dashPattern=8 6;strokeColor=#378ADD;fillColor=none;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontColor=#185FA5;fontStyle=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="70" width="1000" height="520" as="geometry"/>
+                </mxCell>
+                <mxCell id="spa" value="&lt;b&gt;React SPA (Vite)&lt;/b&gt;&lt;br&gt;Catalogue · Cart&lt;br&gt;Checkout · Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#2C2C2A;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="244" width="150" height="92" as="geometry"/>
+                </mxCell>
+                <mxCell id="gw" value="&lt;b&gt;API Gateway&lt;/b&gt;&lt;br&gt;Spring Cloud Gateway :8080&lt;br&gt;&lt;br&gt;JWT · Rate limiting&lt;br&gt;Circuit breakers&lt;br&gt;Routing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEDFE;strokeColor=#534AB7;fontColor=#26215C;fontSize=12;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="235" y="140" width="135" height="300" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" style="edgeStyle=none;html=1;" edge="1" parent="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="150" as="sourcePoint"/>
+                        <mxPoint x="670" y="500" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="620" y="150"/>
+                            <mxPoint x="670" y="150"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="s_users" value="&lt;b&gt;Users  :8081&lt;/b&gt;&lt;br&gt;Identity · JWT · RBAC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="120" width="185" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" style="html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;" edge="1" parent="1" source="s_products">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="670" y="210" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="s_products" value="&lt;b&gt;Products  :8082&lt;/b&gt;&lt;br&gt;Catalogue · Search · Inventory&lt;br&gt;gRPC server · Redis cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="194" width="185" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" style="edgeStyle=none;html=1;exitX=0.993;exitY=0.219;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="s_orders">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="670" y="280" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="s_orders" value="&lt;b&gt;Orders  :8083&lt;/b&gt;&lt;br&gt;Order lifecycle · Reservation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="268" width="185" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="s_payments" value="&lt;b&gt;Payments  :8084&lt;/b&gt;&lt;br&gt;Fake processor (90/10)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="342" width="185" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="s_notif" value="&lt;b&gt;Notifications  :8085&lt;/b&gt;&lt;br&gt;Event consumer · Email" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="416" width="185" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="redis" value="&lt;b&gt;Redis 7&lt;/b&gt;&lt;br&gt;&lt;br&gt;Streams (event bus)&lt;br&gt;Cache · Rate-limit&lt;br&gt;Idempotency" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#4A1B0C;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="775" y="150" width="150" height="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="mail" value="&lt;b&gt;SMTP / Mailhog&lt;/b&gt;&lt;br&gt;:8025" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#2C2C2A;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="775" y="416" width="150" height="56" as="geometry"/>
+                </mxCell>
+                <mxCell id="pg" value="&lt;b&gt;PostgreSQL 16&lt;/b&gt; — one instance · 5 schemas&lt;br&gt;users · products · orders · payments · notifications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5EE;strokeColor=#0F6E56;fontColor=#04342C;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="235" y="502" width="690" height="64" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_spa_gw" value="REST / HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;fontSize=10;fontColor=#5F5E5A;" parent="1" source="spa" target="gw" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gw_users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="gw" target="s_users" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gw_products" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="gw" target="s_products" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gw_orders" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="gw" target="s_orders" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gw_payments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="gw" target="s_payments" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_gw_notif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="gw" target="s_notif" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_grpc" value="gRPC stock check" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#534AB7;strokeWidth=2;fontSize=10;fontColor=#534AB7;exitX=0;exitY=0.3;entryX=0;entryY=0.7;" parent="1" source="s_orders" target="s_products" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="410" y="286"/>
+                            <mxPoint x="410" y="236"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_ev_users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#993C1D;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="s_users" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_ev_products" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#993C1D;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="s_products" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_ev_orders" value="events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#993C1D;fontSize=10;fontColor=#993C1D;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="s_orders" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_ev_payments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#993C1D;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="s_payments" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_ev_notif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#993C1D;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="s_notif" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_smtp" value="SMTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#5F5E5A;fontSize=10;fontColor=#5F5E5A;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="s_notif" target="mail" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f1" value="Java 21" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f2" value="Spring Boot 3.3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="134" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f3" value="gRPC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="238" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f4" value="Redis 7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="342" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f5" value="PostgreSQL 16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="446" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f6" value="Docker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="550" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f7" value="React / Vite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="654" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f8" value="Prometheus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="758" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f9" value="Grafana" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="862" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="f10" value="Jaeger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#B4B2A9;fontColor=#444441;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="966" y="612" width="100" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" style="edgeStyle=none;html=1;exitX=0.993;exitY=0.219;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="615" y="360" as="sourcePoint"/>
+                        <mxPoint x="671" y="359" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="7" style="edgeStyle=none;html=1;exitX=0.993;exitY=0.219;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="615" y="461" as="sourcePoint"/>
+                        <mxPoint x="671" y="460" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
