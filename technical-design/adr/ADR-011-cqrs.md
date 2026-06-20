@@ -32,6 +32,8 @@ write model so reservation ([Order Placement](../features/order-placement.md))
 operates on truth, never a stale count. The read cache is for catalogue
 *presentation* data only.
 
+![Products CQRS — write model (PostgreSQL, source of truth) vs read model (Redis cache, 60s TTL); stock always read live](../assets/products-cqrs.png)
+
 ## Alternatives Considered
 
 | Option | Why not |

@@ -55,6 +55,8 @@ graph LR
     class req,resp,pg,fill n
 ```
 
+![Products CQRS — write model (PostgreSQL, source of truth) vs read model (Redis cache, 60s TTL); stock always read live](../assets/products-cqrs.png)
+
 - List/search results are cached in Redis with a **60s TTL**
   ([ADR-011](../adr/ADR-011-cqrs.md)).
 - Writes (admin CRUD, CSV import) **evict** affected entries; the TTL is the

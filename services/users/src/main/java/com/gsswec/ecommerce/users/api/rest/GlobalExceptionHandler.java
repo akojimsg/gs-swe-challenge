@@ -3,6 +3,7 @@ package com.gsswec.ecommerce.users.api.rest;
 import com.gsswec.ecommerce.users.api.rest.dto.ErrorResponse;
 import com.gsswec.ecommerce.users.domain.exception.EmailAlreadyExistsException;
 import com.gsswec.ecommerce.users.domain.exception.InvalidCredentialsException;
+import com.gsswec.ecommerce.users.domain.exception.InvalidRefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -22,6 +23,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("invalid_credentials", e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshToken(InvalidRefreshTokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("invalid_refresh_token", e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
