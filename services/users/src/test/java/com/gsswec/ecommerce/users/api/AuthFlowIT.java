@@ -14,6 +14,9 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -108,5 +111,74 @@ class AuthFlowIT {
                 "/api/v1/auth/login", new LoginRequest("wrongpw@test.com", "nope"), Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    // --- session lifecycle (#5) ----------------------------------------------
+
+    private String registerAndGetRefreshCookie(String email) {
+        ResponseEntity<Map> reg = rest.postForEntity(
+                "/api/v1/auth/register", registration(email), Map.class);
+        return reg.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
+                .filter(c -> c.startsWith("refresh_token="))
+                .findFirst().orElseThrow();
+    }
+
+    private ResponseEntity<Map> postWithCookie(String path, String cookie, Class<Map> type) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.COOKIE, cookie);
+        return rest.exchange(path, HttpMethod.POST, new HttpEntity<>(headers), type);
+    }
+
+    @Test
+    void refreshRotatesAndReturnsNewAccessToken() {
+        String cookie = registerAndGetRefreshCookie("refresh@test.com");
+
+        ResponseEntity<Map> response = postWithCookie("/api/v1/auth/refresh", cookie, Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsKey("accessToken");
+        assertThat(response.getHeaders().get(HttpHeaders.SET_COOKIE))
+                .anyMatch(c -> c.startsWith("refresh_token=") && !c.startsWith("refresh_token=;"));
+    }
+
+    @Test
+    void reusedOldRefreshTokenIsRejectedAfterRotation() {
+        String cookie = registerAndGetRefreshCookie("reuse@test.com");
+
+        // First rotation succeeds and revokes the original token.
+        assertThat(postWithCookie("/api/v1/auth/refresh", cookie, Map.class).getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+
+        // Replaying the now-revoked original token must fail.
+        assertThat(postWithCookie("/api/v1/auth/refresh", cookie, Map.class).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void refreshWithoutCookieReturns401() {
+        ResponseEntity<Map> response = rest.postForEntity(
+                "/api/v1/auth/refresh", null, Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void logoutRevokesTokenAndReturns204() {
+        String cookie = registerAndGetRefreshCookie("logout@test.com");
+
+        ResponseEntity<Map> logout = postWithCookie("/api/v1/auth/logout", cookie, Map.class);
+        assertThat(logout.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // The revoked token can no longer be refreshed.
+        assertThat(postWithCookie("/api/v1/auth/refresh", cookie, Map.class).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void logoutWithoutCookieIsIdempotent204() {
+        ResponseEntity<Map> response = rest.postForEntity(
+                "/api/v1/auth/logout", null, Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 }

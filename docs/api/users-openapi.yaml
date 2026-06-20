@@ -23,16 +23,52 @@ paths:
               $ref: "#/components/schemas/RegisterRequest"
         required: true
       responses:
+        "400":
+          description: Validation failed
         "201":
           description: "Account created; access token returned, refresh cookie set"
           content:
             '*/*':
               schema:
                 $ref: "#/components/schemas/AuthResponse"
-        "400":
-          description: Validation failed
         "409":
           description: Email already registered
+  /api/v1/auth/refresh:
+    post:
+      tags:
+      - Authentication
+      summary: Rotate the refresh token and issue a new access token
+      operationId: refresh
+      parameters:
+      - name: refresh_token
+        in: cookie
+        required: false
+        schema:
+          type: string
+      responses:
+        "401":
+          description: "Missing, expired, or revoked refresh token"
+        "200":
+          description: New access token returned; refresh cookie rotated
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RefreshResponse"
+  /api/v1/auth/logout:
+    post:
+      tags:
+      - Authentication
+      summary: Revoke the refresh token and clear the session cookie
+      operationId: logout
+      parameters:
+      - name: refresh_token
+        in: cookie
+        required: false
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Logged out (idempotent)
   /api/v1/auth/login:
     post:
       tags:
@@ -100,6 +136,13 @@ components:
         lastName:
           type: string
         role:
+          type: string
+    RefreshResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        tokenType:
           type: string
     LoginRequest:
       required:

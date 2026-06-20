@@ -18,4 +18,8 @@ public record RefreshToken(
     public boolean isActive(Instant now) {
         return !revoked && expiresAt.isAfter(now);
     }
+
+    public RefreshToken revoke() {
+        return new RefreshToken(id, userId, tokenHash, expiresAt, true, createdAt);
+    }
 }
