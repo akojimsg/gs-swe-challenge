@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package gsswec.stock.v1;
+
+option java_multiple_files = true;
+option java_package = "com.gsswec.ecommerce.stock.grpc";
+option java_outer_classname = "StockProto";
+
+// Internal stock-check / reservation contract between Orders (client) and
+// Products (server). The only synchronous internal call on the order hot path
+// (ADR-009). Reservation is atomic: either every line is reserved or none is.
+service StockService {
+  // Atomically reserve stock for all requested lines. Backed by
+  // SELECT ... FOR UPDATE on the server. Never partially reserves.
+  rpc Reserve(ReserveRequest) returns (ReserveResponse);
+
+  // Compensating action: release previously reserved stock (saga rollback on
+  // order.failed / order.cancelled). Idempotent on the order id.
+  rpc Release(ReleaseRequest) returns (ReleaseResponse);
+}
+
+message StockLine {
+  string product_id = 1;
+  string sku = 2;
+  int32 quantity = 3;
+}
+
+message ReserveRequest {
+  // The order this reservation is for; used for idempotency and release.
+  string order_id = 1;
+  repeated StockLine lines = 2;
+}
+
+message ReserveResponse {
+  bool reserved = 1;
+  // Populated only when reserved = false: the lines that could not be
+  // satisfied (insufficient stock, unknown product, or inactive product).
+  repeated StockShortfall shortfalls = 2;
+}
+
+message StockShortfall {
+  string product_id = 1;
+  string sku = 2;
+  int32 requested = 3;
+  int32 available = 4;
+  ShortfallReason reason = 5;
+}
+
+enum ShortfallReason {
+  SHORTFALL_REASON_UNSPECIFIED = 0;
+  INSUFFICIENT_STOCK = 1;
+  PRODUCT_NOT_FOUND = 2;
+  PRODUCT_INACTIVE = 3;
+}
+
+message ReleaseRequest {
+  string order_id = 1;
+  repeated StockLine lines = 2;
+}
+
+message ReleaseResponse {
+  bool released = 1;
+}
