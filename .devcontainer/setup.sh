@@ -56,6 +56,18 @@ sudo ln -sf "$NODE_BIN_DIR/node" /usr/local/bin/node
 sudo ln -sf "$NODE_BIN_DIR/npm"  /usr/local/bin/npm
 sudo ln -sf "$NODE_BIN_DIR/npx"  /usr/local/bin/npx
 
+echo "==> Configuring git hooks + commit identity"
+# Point git at the tracked hooks dir so the single-contributor guards
+# (.githooks/pre-commit, commit-msg) apply in every clone of this repo.
+# Run from the repo root if we're inside it; harmless otherwise.
+if git -C "$PWD" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git -C "$PWD" config core.hooksPath .githooks
+  chmod +x "$PWD/.githooks/"* 2>/dev/null || true
+  # Repo-local identity: personal address, independent of the host global config.
+  git -C "$PWD" config user.name  "Ezekiel Akoji"
+  git -C "$PWD" config user.email "akojimsg@gmail.com"
+fi
+
 echo "==> Versions"
 java -version    || true
 gradle -version  || true

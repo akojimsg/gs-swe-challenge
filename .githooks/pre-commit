@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+EXPECTED_EMAIL="akojimsg@gmail.com"
+
+author_email="$(git config user.email || true)"
+
+if [ "$author_email" != "$EXPECTED_EMAIL" ]; then
+  echo "✖ commit blocked: author email is '${author_email:-<unset>}'." >&2
+  echo "  This repo requires a single contributor: $EXPECTED_EMAIL" >&2
+  echo "  Fix:  git config user.email $EXPECTED_EMAIL" >&2
+  exit 1
+fi
+
+exit 0
