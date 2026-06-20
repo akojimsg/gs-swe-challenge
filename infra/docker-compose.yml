@@ -1,0 +1,56 @@
+name: gsswec
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: gsswec-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gsswec}
+      POSTGRES_USER: ${POSTGRES_USER:-gsswec}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gsswec} -d ${POSTGRES_DB:-gsswec}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - gsswec
+
+  redis:
+    image: redis:7
+    container_name: gsswec-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - gsswec
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: gsswec-mailhog
+    ports:
+      - "${MAIL_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - gsswec
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  gsswec:
+    name: gsswec
+    driver: bridge
