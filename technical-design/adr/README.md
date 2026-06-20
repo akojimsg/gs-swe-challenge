@@ -27,6 +27,7 @@ These records use a lightweight [MADR](https://adr.github.io/madr/)-style format
 | [011](ADR-011-cqrs.md) | CQRS at the application layer (Redis read model) | Products reads | Accepted |
 | [012](ADR-012-oltp-olap.md) | OLTP/OLAP separation strategy | Analytics path | Accepted |
 | [013](ADR-013-repo-layout.md) | Single root Gradle build in a polyglot monorepo | Repo layout | Accepted |
+| [014](ADR-014-api-documentation.md) | Code-first OpenAPI via springdoc, per-service export | API docs | Accepted |
 
 ## Reading order
 

@@ -5,6 +5,7 @@ plugins {
 
 ext {
     jjwtVersion = "0.12.6"
+    springdocVersion = "2.6.0"
 }
 
 dependencyManagement {
@@ -25,6 +26,8 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-data-redis"
     implementation "org.springframework.boot:spring-boot-starter-validation"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
+
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
 
     implementation "org.flywaydb:flyway-core"
     implementation "org.flywaydb:flyway-database-postgresql"

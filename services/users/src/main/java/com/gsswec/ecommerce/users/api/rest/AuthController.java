@@ -6,6 +6,10 @@ import com.gsswec.ecommerce.users.api.rest.dto.RegisterRequest;
 import com.gsswec.ecommerce.users.application.usecase.AuthResult;
 import com.gsswec.ecommerce.users.application.usecase.AuthenticateUser;
 import com.gsswec.ecommerce.users.application.usecase.RegisterUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import java.time.Instant;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Authentication", description = "Registration, login, and token issuance")
 public class AuthController {
 
     private static final String REFRESH_COOKIE = "refresh_token";
@@ -33,6 +38,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Register a new BUYER account and issue tokens")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Account created; access token returned, refresh cookie set"),
+        @ApiResponse(responseCode = "400", description = "Validation failed", content = @io.swagger.v3.oas.annotations.media.Content),
+        @ApiResponse(responseCode = "409", description = "Email already registered", content = @io.swagger.v3.oas.annotations.media.Content)
+    })
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResult result = registerUser.register(new RegisterUser.Command(
                 request.email(), request.password(), request.firstName(), request.lastName()));
@@ -42,6 +53,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Authenticate with email and password and issue tokens")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Authenticated; access token returned, refresh cookie set"),
+        @ApiResponse(responseCode = "401", description = "Invalid email or password", content = @io.swagger.v3.oas.annotations.media.Content)
+    })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResult result = authenticateUser.login(new AuthenticateUser.Command(
                 request.email(), request.password()));
