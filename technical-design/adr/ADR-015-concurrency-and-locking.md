@@ -55,9 +55,9 @@ matched to the access pattern.
 | **Shrink the critical section** | Reservation is a single atomic statement; **no I/O inside the locked transaction** — no event publish, no remote call while a row lock is held. | Implemented |
 | **Offload non-response work** | CSV import is `@Async`: the request thread returns `202 + importId` in ms; the long parse runs on a separate executor. | Implemented |
 | **Free threads via events** | The purchase saga is choreographed — Orders returns `201` and does **not** hold a thread waiting for payment; Payments reacts on its own pool. | Implemented (ADR-003) |
-| **Bulkheads** | The gRPC server runs on its own Netty executor, isolated from the Tomcat request pool — a flood of stock checks can't directly starve REST threads. | Inherent |
-| **Deadlines** | A client deadline on the Orders→Products gRPC call caps worst-case thread-hold time and propagates cancellation. | **Planned (issue)** |
-| **Circuit breaker** | Resilience4j trips on a failing downstream so threads fail fast instead of blocking on doomed calls. | Edge done (ADR-006); gRPC-client planned (issue) |
+| **Bulkheads** | The gRPC server dispatches handlers on its own server executor pool (separate from the Netty transport threads) and isolated from the Tomcat request pool — a flood of stock checks can't directly starve REST threads. | Inherent |
+| **Deadlines** | A client deadline on the Orders→Products gRPC call caps worst-case thread-hold time and propagates cancellation. | In scope with the Orders build (#11/#44) |
+| **Circuit breaker** | Resilience4j trips on a failing downstream so threads fail fast instead of blocking on doomed calls. | Edge done (ADR-006); gRPC-client in scope with the Orders build |
 
 ## The worked example — order placement
 
@@ -91,8 +91,7 @@ COMMIT                                                      -- lock released her
 
 The identical *shape* (read current state → compute new state → write) appears in
 **`UpdateProduct`** (and in the CSV import's upsert-by-SKU). Two concurrent admin
-PATCHes, or a PATCH racing a stock decrement, can **lost-update** each other under
-last-writer-wins.
+PATCHes can **lost-update** each other under last-writer-wins.
 
 Here the **right tool is optimistic locking**, not the pessimistic lock used for
 reservation, because admin edits rarely collide: add a `@Version` column; on a
@@ -101,14 +100,25 @@ into a `409 Conflict` (or a bounded retry). This deliberately *differs* from the
 reservation path — the lock strategy is chosen by the contention profile, not
 applied uniformly. (Tracked as a follow-up issue.)
 
+> **Critical subtlety — `@Version` does not guard `stock`.** Reservation is a
+> *native* `UPDATE … SET stock = stock - :qty`; it neither loads the JPA entity nor
+> bumps `@Version`. So a versioned admin save that *also* wrote `stock` could clobber
+> a concurrent decrement and the version check would still pass (the decrementer
+> never touched the version). The resolution is **ownership, not more locking**:
+> **`stock` is owned solely by reservation/restock and is NOT writable through the
+> versioned admin PATCH.** Catalogue edits (`name`, `description`, `price`,
+> `category`, `active`) take the optimistic path; stock changes go only through the
+> reservation/restock paths. This removes the cross-path race by construction.
+> Implementation consequence: the admin update command must **not** accept `stock`.
+
 ## Consequences
 
 **Positive**
 - Correctness under concurrency is guaranteed at the database, not bolted on in
   application code, and is matched to each path's contention profile.
 - Latency is bounded by design: minimal critical sections, offloaded slow work,
-  thread isolation, and (planned) deadlines/breakers keep one slow dependency from
-  cascading into pool exhaustion.
+  thread isolation, and deadlines/breakers (delivered with the Orders build) keep
+  one slow dependency from cascading into pool exhaustion.
 - The blocking stack stays simple and debuggable; the reactive option is understood
   and deferred, not ignored.
 

@@ -59,22 +59,29 @@ sequenceDiagram
 
     O->>P: gRPC reserveStock([{sku, qty}…])
     P->>DB: BEGIN
-    P->>DB: SELECT … FOR UPDATE (lock product rows)
-    alt all lines have sufficient stock
-        P->>DB: UPDATE stock = stock - qty
+    loop each line
+        P->>DB: UPDATE stock = stock - qty WHERE sku = ? AND stock >= qty
+        Note over P,DB: rows affected = 1 → reserved; 0 → shortfall
+    end
+    alt every line affected 1 row
         P->>DB: COMMIT
         P-->>O: reserved ✓
-    else any line short
+    else any line affected 0 rows
         P->>DB: ROLLBACK
         P-->>O: insufficient stock ✗ (which sku)
     end
 ```
 
-- `SELECT … FOR UPDATE` **row-locks** the product rows for the duration of the
-  transaction, so a second concurrent reservation blocks until the first commits —
-  then sees the decremented stock. This is why integration tests run against **real
-  PostgreSQL**, not H2 ([ADR-008](../adr/ADR-008-testcontainers.md)): the locking
-  behaviour *is* the feature.
+- Reservation is a single **conditional, row-locked `UPDATE … SET stock = stock -
+  :qty WHERE sku = :sku AND stock >= :qty`** per line, all within one transaction.
+  The `WHERE stock >= :qty` makes it atomic: two buyers racing the last unit
+  serialise on the row, exactly one `UPDATE` affects a row, the other affects zero
+  → reported as a shortfall. No separate `SELECT … FOR UPDATE` step is needed; the
+  conditional `UPDATE` *is* the lock-and-check ([ADR-015](../adr/ADR-015-concurrency-and-locking.md)).
+- **All-or-nothing across lines:** if any line affects zero rows, the transaction
+  rolls back, undoing decrements already applied to earlier lines.
+- This is why integration tests run against **real PostgreSQL**, not H2
+  ([ADR-008](../adr/ADR-008-testcontainers.md)): the locking behaviour *is* the feature.
 - The `CHECK (stock >= 0)` constraint is the final backstop — even a logic bug
   cannot persist negative stock.
 - Stock is read **live**, never from cache ([ADR-011](../adr/ADR-011-cqrs.md)).
