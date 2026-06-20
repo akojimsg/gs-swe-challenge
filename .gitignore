@@ -14,7 +14,9 @@
 build/
 **/build/
 !**/src/**/build/
-out/
+# IntelliJ build output — anchored to repo root so it does not match the
+# hexagonal application/port/out/ source package.
+/out/
 *.class
 *.log
 *.jar

@@ -27,6 +27,12 @@ public record User(
                 newRole, active, createdAt, updatedAt);
     }
 
+    public User withName(String newFirstName, String newLastName) {
+        return new User(
+                id, email, passwordHash, newFirstName, newLastName,
+                role, active, createdAt, updatedAt);
+    }
+
     public boolean isAdmin() {
         return role == Role.ADMIN;
     }

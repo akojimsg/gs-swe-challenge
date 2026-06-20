@@ -1,7 +1,10 @@
 package com.gsswec.ecommerce.users.infrastructure.security;
 
 import com.gsswec.ecommerce.users.application.port.out.TokenIssuer;
+import com.gsswec.ecommerce.users.application.port.out.TokenVerifier;
 import com.gsswec.ecommerce.users.domain.model.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -9,12 +12,13 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HexFormat;
+import java.util.Optional;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
 
 @Component
-public class JwtTokenIssuer implements TokenIssuer {
+public class JwtTokenIssuer implements TokenIssuer, TokenVerifier {
 
     private final JwtProperties properties;
     private final SecretKey signingKey;
@@ -47,6 +51,24 @@ public class JwtTokenIssuer implements TokenIssuer {
         String raw = UUID.randomUUID().toString();
         Instant expiry = Instant.now(clock).plus(properties.refreshTokenTtl());
         return new RefreshTokenValue(raw, hashRefreshToken(raw), expiry);
+    }
+
+    @Override
+    public Optional<VerifiedToken> verify(String accessToken) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .clock(() -> Date.from(Instant.now(clock)))
+                    .build()
+                    .parseSignedClaims(accessToken)
+                    .getPayload();
+            return Optional.of(new VerifiedToken(
+                    UUID.fromString(claims.getSubject()),
+                    claims.get("email", String.class),
+                    claims.get("role", String.class)));
+        } catch (JwtException | IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     @Override

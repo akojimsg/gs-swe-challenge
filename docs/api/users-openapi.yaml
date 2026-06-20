@@ -7,6 +7,8 @@ servers:
 - url: http://localhost:8081
   description: Generated server url
 tags:
+- name: Users
+  description: Self-service profile and admin user management
 - name: Authentication
   description: "Registration, login, and token issuance"
 paths:
@@ -90,6 +92,111 @@ paths:
                 $ref: "#/components/schemas/AuthResponse"
         "401":
           description: Invalid email or password
+  /api/v1/users/{id}/role:
+    patch:
+      tags:
+      - Users
+      summary: "Change a user's role; publishes user.role_changed [ADMIN]"
+      operationId: changeRole
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeRoleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /api/v1/users/me:
+    get:
+      tags:
+      - Users
+      summary: Get the authenticated user's profile
+      operationId: me
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+    patch:
+      tags:
+      - Users
+      summary: Update the authenticated user's profile
+      operationId: updateMe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /api/v1/users:
+    get:
+      tags:
+      - Users
+      summary: "List all users (paginated) [ADMIN]"
+      operationId: list
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedResponseUserResponse"
+  /api/v1/users/{id}:
+    get:
+      tags:
+      - Users
+      summary: "Get a user by id [ADMIN]"
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
 components:
   schemas:
     RegisterRequest:
@@ -154,3 +261,46 @@ components:
           type: string
         password:
           type: string
+    ChangeRoleRequest:
+      required:
+      - role
+      type: object
+      properties:
+        role:
+          type: string
+          enum:
+          - BUYER
+          - ADMIN
+    UpdateProfileRequest:
+      required:
+      - firstName
+      - lastName
+      type: object
+      properties:
+        firstName:
+          maxLength: 100
+          minLength: 0
+          type: string
+        lastName:
+          maxLength: 100
+          minLength: 0
+          type: string
+    PagedResponseUserResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserResponse"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
