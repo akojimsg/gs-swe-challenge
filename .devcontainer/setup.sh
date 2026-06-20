@@ -68,6 +68,24 @@ if git -C "$PWD" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$PWD" config user.email "akojimsg@gmail.com"
 fi
 
+echo "==> Configuring Docker for Testcontainers (docker-in-docker)"
+# The host's docker config leaks a credsStore that does not exist in the
+# container, breaking image pulls. Reset to an empty config so unauthenticated
+# Docker Hub pulls work. Testcontainers env is exported for interactive shells;
+# the Docker client API version is pinned per-module in build.gradle.
+mkdir -p "$HOME/.docker"
+echo "{}" > "$HOME/.docker/config.json"
+
+PROFILE_BLOCK="$HOME/.bashrc"
+if ! grep -q "TESTCONTAINERS_RYUK_DISABLED" "$PROFILE_BLOCK" 2>/dev/null; then
+  {
+    echo ""
+    echo "# gs-swe-challenge: Testcontainers / docker-in-docker"
+    echo "export DOCKER_HOST=unix:///var/run/docker.sock"
+    echo "export TESTCONTAINERS_RYUK_DISABLED=true"
+  } >> "$PROFILE_BLOCK"
+fi
+
 echo "==> Versions"
 java -version    || true
 gradle -version  || true
