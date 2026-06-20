@@ -29,6 +29,10 @@ spring:
 server:
   port: 8082
 
+grpc:
+  server:
+    port: ${PRODUCTS_GRPC_PORT:50051}
+
 gsswec:
   jwt:
     secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}
