@@ -1,6 +1,7 @@
 package com.gsswec.ecommerce.products.infrastructure.persistence;
 
 import com.gsswec.ecommerce.products.domain.model.ImportJob;
+import com.gsswec.ecommerce.shared.util.ImportError;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -50,67 +52,32 @@ public class ImportJobEntity {
     protected ImportJobEntity() {
     }
 
-    static ImportJobEntity create(UUID id, UUID requestedBy, ImportJob.Status status, String errorsJson) {
+    // Mirror of ProductEntity/UserEntity: entity<->domain mapping lives on the
+    // entity, not the adapter. The errors column is the one seam — it is JSON, so
+    // the adapter passes the serialised string in and reads it back out (it owns
+    // Jackson); everything else maps here.
+    static ImportJobEntity fromDomain(ImportJob job, String errorsJson) {
         ImportJobEntity e = new ImportJobEntity();
-        e.id = id;
-        e.requestedBy = requestedBy;
-        e.status = status;
+        e.id = job.id();
+        e.requestedBy = job.requestedBy();
+        e.status = job.status();
+        e.totalRows = job.totalRows();
+        e.imported = job.imported();
+        e.updated = job.updated();
+        e.skipped = job.skipped();
         e.errors = errorsJson;
+        e.durationMs = job.durationMs();
+        e.completedAt = job.completedAt();
         return e;
     }
 
-    void apply(ImportJob job, String errorsJson) {
-        this.status = job.status();
-        this.totalRows = job.totalRows();
-        this.imported = job.imported();
-        this.updated = job.updated();
-        this.skipped = job.skipped();
-        this.errors = errorsJson;
-        this.durationMs = job.durationMs();
-        this.completedAt = job.completedAt();
+    ImportJob toDomain(List<ImportError> errors) {
+        return new ImportJob(id, requestedBy, status, totalRows, imported, updated,
+                skipped, errors, durationMs, createdAt, completedAt);
     }
 
-    UUID id() {
-        return id;
-    }
-
-    UUID requestedBy() {
-        return requestedBy;
-    }
-
-    ImportJob.Status status() {
-        return status;
-    }
-
-    Integer totalRows() {
-        return totalRows;
-    }
-
-    Integer imported() {
-        return imported;
-    }
-
-    Integer updated() {
-        return updated;
-    }
-
-    Integer skipped() {
-        return skipped;
-    }
-
+    // The only accessor: the raw JSON the adapter deserialises into ImportErrors.
     String errorsJson() {
         return errors;
-    }
-
-    Long durationMs() {
-        return durationMs;
-    }
-
-    Instant createdAt() {
-        return createdAt;
-    }
-
-    Instant completedAt() {
-        return completedAt;
     }
 }

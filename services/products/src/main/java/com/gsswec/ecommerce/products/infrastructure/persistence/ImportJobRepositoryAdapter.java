@@ -23,22 +23,13 @@ public class ImportJobRepositoryAdapter implements ImportJobRepository {
 
     @Override
     public ImportJob save(ImportJob job) {
-        String errorsJson = writeErrors(job.errors());
-        ImportJobEntity entity = jpa.findById(job.id())
-                .orElseGet(() -> ImportJobEntity.create(job.id(), job.requestedBy(), job.status(), errorsJson));
-        entity.apply(job, errorsJson);
-        return toDomain(jpa.save(entity));
+        ImportJobEntity saved = jpa.save(ImportJobEntity.fromDomain(job, writeErrors(job.errors())));
+        return saved.toDomain(readErrors(saved.errorsJson()));
     }
 
     @Override
     public Optional<ImportJob> findById(UUID id) {
-        return jpa.findById(id).map(this::toDomain);
-    }
-
-    private ImportJob toDomain(ImportJobEntity e) {
-        return new ImportJob(e.id(), e.requestedBy(), e.status(),
-                e.totalRows(), e.imported(), e.updated(), e.skipped(),
-                readErrors(e.errorsJson()), e.durationMs(), e.createdAt(), e.completedAt());
+        return jpa.findById(id).map(e -> e.toDomain(readErrors(e.errorsJson())));
     }
 
     private String writeErrors(List<ImportError> errors) {
