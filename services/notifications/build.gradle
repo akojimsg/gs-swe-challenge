@@ -1,0 +1,17 @@
+// Notifications service (:8085). Scaffold-level dependencies only; feature-specific
+// starters (web, security, data-jpa, grpc, gateway) are added by the issue
+// that implements each capability.
+
+plugins {
+    id "org.springframework.boot"
+    id "io.spring.dependency-management"
+}
+
+dependencies {
+    implementation project(":shared")
+    implementation "org.springframework.boot:spring-boot-starter"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}

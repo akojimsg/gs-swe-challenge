@@ -1,0 +1,15 @@
+// Shared library: BaseEvent, the 15 event payloads, StreamNames, and DTOs.
+// Pure Java 21 records — ZERO Spring dependencies (ADR-005, ADR-004). Every
+// service depends on this module so producers and consumers compile against the
+// same event contract.
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.11.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.assertj:assertj-core:3.26.3'
+}
