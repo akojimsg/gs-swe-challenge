@@ -1,0 +1,159 @@
+openapi: 3.0.1
+info:
+  title: Payments Service API
+  description: "Payment records for the purchase saga. The processor is event-driven (consumes order.placed, publishes payment.succeeded/failed); this REST surface is read-only."
+  version: v1
+servers:
+- url: http://localhost:8084
+  description: Generated server url
+tags:
+- name: Payments
+  description: "Read access to payment records"
+paths:
+  /api/v1/payments/{id}:
+    get:
+      tags:
+      - Payments
+      summary: "Get a payment by id (own only for BUYER) [BUYER]"
+      operationId: getPayment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+        "403":
+          description: Not the payment owner
+        "404":
+          description: Not found
+      security:
+      - bearerAuth: []
+  /api/v1/payments/order/{id}:
+    get:
+      tags:
+      - Payments
+      summary: "Get the payment for an order (own only for BUYER) [BUYER]"
+      operationId: getPaymentByOrder
+      parameters:
+      - name: id
+        in: path
+        description: Order id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+        "403":
+          description: Not the order owner
+        "404":
+          description: No payment for this order
+      security:
+      - bearerAuth: []
+  /api/v1/payments:
+    get:
+      tags:
+      - Payments
+      summary: "List all payments (paginated) [ADMIN]"
+      operationId: listPayments
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "#/components/schemas/PaymentStatus"
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagedResponsePaymentResponse"
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    PaymentStatus:
+      type: string
+      enum:
+      - SUCCEEDED
+      - FAILED
+      - REFUNDED
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        status:
+          $ref: "#/components/schemas/PaymentStatus"
+        method:
+          type: string
+        last4:
+          type: string
+        reason:
+          description: "Populated on FAILED"
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    PagedResponsePaymentResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentResponse"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: Access token from POST /api/v1/auth/login
+      scheme: bearer
+      bearerFormat: JWT
