@@ -1,0 +1,10 @@
+rootProject.name = 'gs-swe-challenge'
+
+include 'shared'
+
+include 'services:gateway'
+include 'services:users'
+include 'services:products'
+include 'services:orders'
+include 'services:payments'
+include 'services:notifications'

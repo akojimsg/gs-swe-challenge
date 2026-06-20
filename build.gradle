@@ -1,0 +1,47 @@
+// Root build for the gs-swe-challenge backend (polyglot monorepo — see ADR-013).
+// Declares plugins for subprojects to apply, and configures conventions common to
+// every JVM module. It applies NO Java plugin to the root itself; the root has no
+// sources.
+
+plugins {
+    id 'org.springframework.boot' version '3.3.4' apply false
+    id 'io.spring.dependency-management' version '1.1.6' apply false
+}
+
+allprojects {
+    group = 'com.gsswec.ecommerce'
+    version = '0.1.0'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+// Conventions shared by every module (shared + services). Spring Boot itself is
+// applied per-module, not here: the shared library must stay framework-free
+// (ADR-005), so only the service modules apply the Spring Boot plugin.
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-parameters'
+    }
+}
