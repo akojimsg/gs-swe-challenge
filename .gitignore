@@ -49,6 +49,15 @@ playwright-report/
 
 # --- IDEs / editors ----------------------------------------------------------
 .idea/
+# Eclipse / JDT language server (dev-container Java tooling)
+.project
+.classpath
+.settings/
+bin/
+**/.project
+**/.classpath
+**/.settings/
+**/bin/
 *.iml
 .vscode/*
 !.vscode/extensions.json
