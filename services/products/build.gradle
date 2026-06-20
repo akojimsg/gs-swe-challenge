@@ -1,11 +1,17 @@
 plugins {
     id "org.springframework.boot"
     id "io.spring.dependency-management"
+    id "com.google.protobuf" version "0.9.4"
 }
 
 ext {
     springdocVersion = "2.6.0"
     jjwtVersion = "0.12.6"
+    // Align with the grpc version shipped by grpc-spring-boot-starter 3.1.0.RELEASE
+    // (1.63.0); mismatched grpc-api/core causes NoClassDefFoundError at runtime.
+    grpcVersion = "1.63.0"
+    protobufVersion = "3.25.3"
+    grpcSpringVersion = "3.1.0.RELEASE"
 }
 
 dependencyManagement {
@@ -28,19 +34,48 @@ dependencies {
     implementation "org.flywaydb:flyway-database-postgresql"
     runtimeOnly "org.postgresql:postgresql"
 
+    implementation "org.apache.commons:commons-csv:1.11.0"
+
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
 
     implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 
+    // gRPC server (net.devh starter auto-starts the server, registers @GrpcService).
+    implementation "net.devh:grpc-server-spring-boot-starter:${grpcSpringVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    compileOnly "org.apache.tomcat:annotations-api:6.0.53"
+
     testImplementation "org.springframework.boot:spring-boot-starter-test"
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.apache.httpcomponents.client5:httpclient5"
+    testImplementation "org.awaitility:awaitility"
+    testImplementation "io.grpc:grpc-netty-shaded:${grpcVersion}"
     testImplementation "org.springframework.boot:spring-boot-testcontainers"
     testImplementation "org.testcontainers:junit-jupiter"
     testImplementation "org.testcontainers:postgresql"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
 }
 
 tasks.named("test") {

@@ -7,6 +7,8 @@ servers:
 - url: http://localhost:8082
   description: Generated server url
 tags:
+- name: Product Import
+  description: "Async CSV catalogue import [ADMIN]"
 - name: Categories
   description: Public category listing
 - name: Products
@@ -173,6 +175,50 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ProductResponse"
+  /api/v1/products/import:
+    post:
+      tags:
+      - Product Import
+      summary: "Upload a CSV for async import; returns 202 + importId [ADMIN]"
+      operationId: upload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ImportJobResponse"
+  /api/v1/products/import/{id}:
+    get:
+      tags:
+      - Product Import
+      summary: "Get import job status and result summary [ADMIN]"
+      operationId: status
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ImportJobResponse"
   /api/v1/categories:
     get:
       tags:
@@ -267,6 +313,45 @@ components:
           format: int32
         weightKg:
           type: number
+    ImportError:
+      type: object
+      properties:
+        row:
+          type: integer
+          format: int32
+        field:
+          type: string
+        value:
+          type: string
+        reason:
+          type: string
+    ImportJobResponse:
+      type: object
+      properties:
+        importId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        totalRows:
+          type: integer
+          format: int32
+        imported:
+          type: integer
+          format: int32
+        updated:
+          type: integer
+          format: int32
+        skipped:
+          type: integer
+          format: int32
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportError"
+        durationMs:
+          type: integer
+          format: int64
     PagedResponseProductResponse:
       type: object
       properties:

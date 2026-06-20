@@ -15,6 +15,27 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, UUID>
 
     boolean existsBySku(String sku);
 
+    // Atomic conditional decrement: succeeds (returns 1) only when sufficient
+    // active stock exists; the WHERE row-locks for the update, so concurrent
+    // reservations of the last unit serialise and exactly one wins. Returns 0
+    // when stock is insufficient or the SKU is missing/inactive.
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = """
+            UPDATE products_schema.products
+               SET stock = stock - :qty, updated_at = now()
+             WHERE sku = :sku AND active = true AND stock >= :qty
+            """, nativeQuery = true)
+    int tryDecrement(@Param("sku") String sku, @Param("qty") int qty);
+
+    // Compensating increment (saga release). Unconditional restore of stock.
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = """
+            UPDATE products_schema.products
+               SET stock = stock + :qty, updated_at = now()
+             WHERE sku = :sku
+            """, nativeQuery = true)
+    int increment(@Param("sku") String sku, @Param("qty") int qty);
+
     // Dynamic catalogue search. Each filter is bypassed when its parameter is null.
     // Full-text search uses the GIN-indexed tsvector when :q is provided.
     // Native query so the Postgres FTS operators are available; only active
