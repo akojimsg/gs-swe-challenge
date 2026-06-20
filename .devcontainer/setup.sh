@@ -35,6 +35,14 @@ sdk install java "$JAVA_VERSION"   || true
 sdk install gradle "$GRADLE_VERSION" || true
 sdk default java "$JAVA_VERSION"
 sdk default gradle "$GRADLE_VERSION"
+
+# Expose java/javac/gradle globally so non-interactive shells (make recipes run
+# under /bin/sh, which does not source SDKMAN) and VS Code tasks resolve them.
+JAVA_BIN_DIR="$SDKMAN_DIR/candidates/java/current/bin"
+GRADLE_BIN_DIR="$SDKMAN_DIR/candidates/gradle/current/bin"
+sudo ln -sf "$JAVA_BIN_DIR/java"   /usr/local/bin/java
+sudo ln -sf "$JAVA_BIN_DIR/javac"  /usr/local/bin/javac
+sudo ln -sf "$GRADLE_BIN_DIR/gradle" /usr/local/bin/gradle
 set -u
 
 echo "==> Installing nvm ${NVM_VERSION} + Node LTS"
@@ -71,18 +79,24 @@ fi
 echo "==> Configuring Docker for Testcontainers (docker-in-docker)"
 # The host's docker config leaks a credsStore that does not exist in the
 # container, breaking image pulls. Reset to an empty config so unauthenticated
-# Docker Hub pulls work. Testcontainers env is exported for interactive shells;
-# the Docker client API version is pinned per-module in build.gradle.
+# Docker Hub pulls work. The Docker client API version is pinned per-module in
+# build.gradle.
 mkdir -p "$HOME/.docker"
 echo "{}" > "$HOME/.docker/config.json"
 
+# Disable Ryuk via ~/.testcontainers.properties (read regardless of shell) so it
+# also applies to `make test`, whose recipes run under /bin/sh and never source
+# .bashrc. Ryuk's resource-reaper container is unreliable under docker-in-docker.
+if ! grep -q "ryuk.disabled" "$HOME/.testcontainers.properties" 2>/dev/null; then
+  echo "ryuk.disabled=true" >> "$HOME/.testcontainers.properties"
+fi
+
 PROFILE_BLOCK="$HOME/.bashrc"
-if ! grep -q "TESTCONTAINERS_RYUK_DISABLED" "$PROFILE_BLOCK" 2>/dev/null; then
+if ! grep -q "DOCKER_HOST=unix" "$PROFILE_BLOCK" 2>/dev/null; then
   {
     echo ""
     echo "# gs-swe-challenge: Testcontainers / docker-in-docker"
     echo "export DOCKER_HOST=unix:///var/run/docker.sock"
-    echo "export TESTCONTAINERS_RYUK_DISABLED=true"
   } >> "$PROFILE_BLOCK"
 fi
 
