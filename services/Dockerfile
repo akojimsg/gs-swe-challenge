@@ -19,9 +19,15 @@ COPY shared ./shared
 COPY services ./services
 
 ARG SERVICE
+# The Gradle home cache is shared across the per-service builds. `sharing=locked`
+# serializes access so concurrent service builds (compose builds all four at once)
+# don't collide on Gradle's journal/VFS lock — otherwise one wins the lock and the
+# rest fail with "Timeout waiting to lock journal cache". Deps + :shared are still
+# resolved once and reused, just not simultaneously.
+#
 # bootJar emits two artifacts: the executable boot jar and a `-plain` library jar.
 # Pick the executable one (exclude `-plain`).
-RUN --mount=type=cache,target=/root/.gradle \
+RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
     ./gradlew --no-daemon :services:${SERVICE}:bootJar \
     && find services/${SERVICE}/build/libs -name "${SERVICE}-*.jar" ! -name "*-plain.jar" \
        -exec cp {} /workspace/app.jar \;
