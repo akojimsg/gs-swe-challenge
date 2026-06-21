@@ -11,16 +11,23 @@ GRADLE       := ./gradlew
 # Backend service modules (Gradle paths). Used to generate per-service targets.
 SERVICES := users products orders payments notifications gateway
 
+# Services with a working bootRun entrypoint today, started together by `run-all`.
+# Extend as lanes land (notifications, gateway).
+RUN_SERVICES := users products orders payments
+
+# Where `run-all` writes per-service logs / pids (outside the repo).
+RUN_DIR := /tmp/gsswec-run
+
 .DEFAULT_GOAL := help
 
-.PHONY: help env build test clean up up-obs down restart seed smoke logs ps
+.PHONY: help env build test clean up up-obs down restart seed smoke logs ps run-all run-all-stop run-all-status
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 	@echo "  \033[36mbuild-<svc>     \033[0m Build one service ($(SERVICES))"
 	@echo "  \033[36mtest-<svc>      \033[0m Test one service"
-	@echo "  \033[36mrun-<svc>       \033[0m Run one service locally (bootRun)"
+	@echo "  \033[36mrun-<svc>       \033[0m Run one service locally, foreground (bootRun)"
 
 # --- Environment -------------------------------------------------------------
 
@@ -69,6 +76,50 @@ ps: ## Show status of the running stack
 
 logs: ## Tail logs from all running services
 	$(COMPOSE) logs -f
+
+# --- Run services locally (bootRun) ------------------------------------------
+# These run the JVM services on the host/dev-container via Gradle (NOT in Compose,
+# which today only provisions Postgres/Redis/Mailhog). `run-all` backgrounds each
+# bootRun with its own log + pid file; `run-all-stop` tears them down cleanly.
+
+run-all: up ## Start all runnable services in the background (RUN_SERVICES)
+	@mkdir -p $(RUN_DIR)
+	@for svc in $(RUN_SERVICES); do \
+		if [ -f $(RUN_DIR)/$$svc.pid ] && kill -0 $$(cat $(RUN_DIR)/$$svc.pid) 2>/dev/null; then \
+			echo "  $$svc already running (pid $$(cat $(RUN_DIR)/$$svc.pid))"; \
+		else \
+			echo "  starting $$svc -> $(RUN_DIR)/$$svc.log"; \
+			nohup $(GRADLE) :services:$$svc:bootRun --console=plain \
+				> $(RUN_DIR)/$$svc.log 2>&1 & echo $$! > $(RUN_DIR)/$$svc.pid; \
+		fi; \
+	done
+	@echo "Services launching. Watch logs:  tail -f $(RUN_DIR)/<svc>.log"
+	@echo "Check health:                    make run-all-status"
+	@echo "Stop everything:                 make run-all-stop"
+
+run-all-status: ## Show health of services started by run-all
+	@for svc in $(RUN_SERVICES); do \
+		port=$$(grep -A2 '^server:' services/$$svc/src/main/resources/application.yml | grep -oE 'port: [0-9]+' | grep -oE '[0-9]+'); \
+		if curl -sf -m2 http://localhost:$$port/actuator/health >/dev/null 2>&1; then \
+			printf "  \033[32m%-10s UP\033[0m   (:%s)\n" "$$svc" "$$port"; \
+		else \
+			printf "  \033[31m%-10s DOWN\033[0m (:%s)\n" "$$svc" "$$port"; \
+		fi; \
+	done
+
+run-all-stop: ## Stop all services started by run-all
+	@for svc in $(RUN_SERVICES); do \
+		port=$$(grep -A2 '^server:' services/$$svc/src/main/resources/application.yml | grep -oE 'port: [0-9]+' | grep -oE '[0-9]+'); \
+		if [ -f $(RUN_DIR)/$$svc.pid ]; then \
+			pid=$$(cat $(RUN_DIR)/$$svc.pid); \
+			pkill -P $$pid 2>/dev/null; kill $$pid 2>/dev/null; \
+			rm -f $(RUN_DIR)/$$svc.pid; \
+		fi; \
+		if [ -n "$$port" ]; then \
+			lsof -ti tcp:$$port 2>/dev/null | xargs -r kill 2>/dev/null || true; \
+		fi; \
+		echo "  stopped $$svc"; \
+	done
 
 # --- Operations --------------------------------------------------------------
 
