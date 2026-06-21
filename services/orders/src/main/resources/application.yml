@@ -1,9 +1,48 @@
 spring:
   application:
     name: orders
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:gsswec}
+    username: ${POSTGRES_USER:gsswec}
+    password: ${POSTGRES_PASSWORD:change_me_local_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: orders_schema
+    open-in-view: false
+  flyway:
+    enabled: true
+    schemas: orders_schema
+    default-schema: orders_schema
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 server:
   port: 8083
+
+grpc:
+  client:
+    products:
+      address: ${PRODUCTS_GRPC_ADDRESS:static://localhost:50051}
+      negotiation-type: plaintext
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      stock:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+
+gsswec:
+  jwt:
+    secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}
 
 management:
   endpoints:

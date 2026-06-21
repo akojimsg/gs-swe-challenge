@@ -36,6 +36,21 @@ message ReserveResponse {
   // Populated only when reserved = false: the lines that could not be
   // satisfied (insufficient stock, unknown product, or inactive product).
   repeated StockShortfall shortfalls = 2;
+  // Populated only when reserved = true: the authoritative product details for
+  // each reserved line, read from the same locked row as the decrement. Orders
+  // uses these to build the immutable order snapshot (Products is the price
+  // authority; the client never supplies price).
+  repeated ReservedLine lines = 3;
+}
+
+message ReservedLine {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  // Decimal as string to preserve exact NUMERIC(10,2) precision (protobuf has
+  // no decimal type; a double would drift). Parsed to BigDecimal by Orders.
+  string unit_price = 4;
+  int32 quantity = 5;
 }
 
 message StockShortfall {

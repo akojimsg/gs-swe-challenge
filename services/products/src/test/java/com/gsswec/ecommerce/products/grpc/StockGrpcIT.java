@@ -13,6 +13,7 @@ import com.gsswec.ecommerce.stock.grpc.StockServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import java.math.BigDecimal;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,15 +82,21 @@ class StockGrpcIT {
 
         assertThat(res.getReserved()).isTrue();
         assertThat(products.findBySku("GRPC-OK").orElseThrow().stock()).isEqualTo(7);
+        // Reserved-line details come back for the order snapshot (Products is price authority).
+        assertThat(res.getLinesList()).hasSize(1);
+        assertThat(res.getLines(0).getSku()).isEqualTo("GRPC-OK");
+        assertThat(res.getLines(0).getName()).isEqualTo("Seed GRPC-OK");
+        assertThat(res.getLines(0).getUnitPrice()).isEqualTo("9.99");
+        assertThat(res.getLines(0).getQuantity()).isEqualTo(3);
     }
 
     @Test
     void reserveFailsWithShortfallWhenInsufficient() {
-        seed("GRPC-LOW", 2);
+        var p = seed("GRPC-LOW", 2);
 
         ReserveResponse res = stub.reserve(ReserveRequest.newBuilder()
                 .setOrderId("order-2")
-                .addLines(StockLine.newBuilder().setSku("GRPC-LOW").setQuantity(5))
+                .addLines(StockLine.newBuilder().setProductId(p.id().toString()).setQuantity(5))
                 .build());
 
         assertThat(res.getReserved()).isFalse();
@@ -101,13 +108,13 @@ class StockGrpcIT {
 
     @Test
     void reserveIsAllOrNothingAcrossLines() {
-        seed("GRPC-A", 10);
-        seed("GRPC-B", 1);
+        var a = seed("GRPC-A", 10);
+        var b = seed("GRPC-B", 1);
 
         ReserveResponse res = stub.reserve(ReserveRequest.newBuilder()
                 .setOrderId("order-3")
-                .addLines(StockLine.newBuilder().setSku("GRPC-A").setQuantity(5))
-                .addLines(StockLine.newBuilder().setSku("GRPC-B").setQuantity(5))
+                .addLines(StockLine.newBuilder().setProductId(a.id().toString()).setQuantity(5))
+                .addLines(StockLine.newBuilder().setProductId(b.id().toString()).setQuantity(5))
                 .build());
 
         assertThat(res.getReserved()).isFalse();
@@ -117,21 +124,21 @@ class StockGrpcIT {
 
     @Test
     void releaseRestoresStock() {
-        seed("GRPC-REL", 5);
+        var p = seed("GRPC-REL", 5);
         stub.reserve(ReserveRequest.newBuilder().setOrderId("o")
-                .addLines(StockLine.newBuilder().setSku("GRPC-REL").setQuantity(3)).build());
+                .addLines(StockLine.newBuilder().setProductId(p.id().toString()).setQuantity(3)).build());
         assertThat(products.findBySku("GRPC-REL").orElseThrow().stock()).isEqualTo(2);
 
         stub.release(ReleaseRequest.newBuilder().setOrderId("o")
-                .addLines(StockLine.newBuilder().setSku("GRPC-REL").setQuantity(3)).build());
+                .addLines(StockLine.newBuilder().setProductId(p.id().toString()).setQuantity(3)).build());
 
         assertThat(products.findBySku("GRPC-REL").orElseThrow().stock()).isEqualTo(5);
     }
 
     @Test
-    void reserveUnknownSkuReportsNotFound() {
+    void reserveUnknownProductReportsNotFound() {
         ReserveResponse res = stub.reserve(ReserveRequest.newBuilder().setOrderId("o")
-                .addLines(StockLine.newBuilder().setSku("NOPE").setQuantity(1)).build());
+                .addLines(StockLine.newBuilder().setProductId(UUID.randomUUID().toString()).setQuantity(1)).build());
 
         assertThat(res.getReserved()).isFalse();
         assertThat(res.getShortfalls(0).getReason()).isEqualTo(ShortfallReason.PRODUCT_NOT_FOUND);
