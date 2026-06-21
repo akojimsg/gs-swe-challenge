@@ -1,0 +1,50 @@
+/*
+ * Design-system tokens — Figma-derived ("United Deals").
+ * Source of truth: gse-requirement-docs/frontend-design/design-system.md
+ *
+ * shadcn/ui convention: HSL channels (space-separated) in CSS vars, consumed via
+ * hsl(var(--token)) in tailwind.config.js. Light is :root, dark is .dark.
+ *
+ * Split to remember: --primary is the near-black CTA (Figma buttons);
+ * --brand is orange (price, ratings, active, highlights). Don't make every button orange.
+ */
+:root {
+  --background: 0 0% 100%; /* white */
+  --foreground: 210 11% 11%; /* gray-900 #191C1F */
+  --card: 0 0% 100%;
+  --muted: 200 11% 95%; /* gray-50 #F2F4F5 */
+  --muted-foreground: 199 9% 41%; /* gray-600 #5F6C72 */
+  --border: 200 11% 71%; /* gray-300 #ADB7BC */
+  --input: 200 11% 71%;
+  --primary: 210 11% 11%; /* CTA near-black #191C1F */
+  --primary-foreground: 0 0% 100%;
+  --brand: 24 95% 59%; /* accent orange #FA8232 */
+  --ring: 24 95% 59%;
+
+  /* Semantic (badges, alerts, states) */
+  --info: 204 89% 56%; /* #2DA5F3 */
+  --warning: 53 89% 49%; /* #EBC80C */
+  --success: 161 69% 37%; /* #1D9E75 (interim) */
+  --danger: 1 71% 59%; /* #E24B4A (interim) */
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 210 11% 11%;
+  --foreground: 200 11% 95%;
+  --card: 206 11% 15%;
+  --muted: 206 9% 20%;
+  --muted-foreground: 200 8% 70%;
+  --border: 206 9% 26%;
+  --input: 206 9% 26%;
+  --primary: 0 0% 100%; /* CTA inverts to light on dark */
+  --primary-foreground: 210 11% 11%;
+  --brand: 24 95% 62%;
+  --ring: 24 95% 62%;
+
+  --info: 204 89% 60%;
+  --warning: 53 89% 55%;
+  --success: 161 69% 42%;
+  --danger: 1 71% 63%;
+}
