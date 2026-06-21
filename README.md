@@ -21,6 +21,26 @@ a small store perfectly well and would be the correct choice in many real-world
 contexts. That trade-off is documented explicitly in the design doc, including
 when each architectural decision adds value and when it would not.
 
+### Scope note
+
+> The implementation scope of this project deliberately
+> extends beyond the stated challenge requirements.
+> This is intentional.
+>
+> The extended scope reflects my current level of
+> experience and the kind of systems I design and
+> operate professionally. It is not an attempt to
+> over-engineer a simple problem without awareness
+> of the trade-offs involved.
+>
+> A simpler solution (monolith, single database,
+> no message queue) would fully satisfy the
+> requirements and would be the correct choice
+> in many real-world contexts. That trade-off
+> is explicitly documented in the design doc,
+> including when each architectural decision
+> adds value and when it would not.
+
 ---
 
 ## Overview
@@ -141,6 +161,32 @@ make logs      # tail service logs
 admin@gsswec.com / admin123   [ADMIN]
 buyer@gsswec.com / buyer123   [BUYER]
 ```
+
+### CSV sample data
+
+The product catalog is seeded from the sample dataset provided with the
+challenge.
+
+```
+Downloaded:   June 16, 2026
+Location:     scripts/seed-data/products.csv
+```
+
+The file is committed verbatim and deliberately contains edge cases the import
+must handle (and that the seeding/import paths are tested against):
+
+  - XSS in product name (`<script>` tags)
+  - SQL injection in name field
+  - Price as string (`"free"`, `"$29.99"`)
+  - Negative stock values
+  - Duplicate SKUs (upsert, don't reject)
+  - Empty rows at end of file
+  - Missing required fields (name, sku)
+  - Unicode/encoding issues
+  - Zero price (valid — Mystery Box)
+  - Stock 99999 (valid — Gift Card, unlimited)
+  - Whitespace-only name
+  - Blank category
 
 ## Project structure
 
