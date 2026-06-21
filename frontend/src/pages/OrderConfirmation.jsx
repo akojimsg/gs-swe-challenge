@@ -1,21 +1,3 @@
-/*
- * PAGE: Order Confirmation
- * ---------------------------------------------------------------------------
- * Route:  /order/:id/confirmation  ·  Access: Buyer (own) · Scope: core
- * Shell:  StorefrontShell  ·  Figma: 1:12481, 1:12670
- * Spec:   gse-requirement-docs/frontend-design/specs/order-confirmation.md
- *
- * API: getOrder(id) → { status, items[], total, createdAt }. Poll while
- *      AWAITING_PAYMENT (saga is async) until terminal (PAID/FAILED/CANCELLED).
- * STATES (the whole point): AWAITING_PAYMENT → processing spinner · PAID → success
- *      (order #, items, total) · FAILED → first-class PaymentFailedPanel + retry
- *      (~10% by design) · 404 not found / not owner.
- * BUILD NOTE (MCP): pull 1:12481/1:12670 → success view + PaymentFailedPanel +
- *      OrderSummary. The bounded poll loop below is the contract.
- * SAGA DEP: until the saga lane lands, a stub backend may stay AWAITING_PAYMENT —
- *      the attempt bound stops the poll gracefully.
- * ---------------------------------------------------------------------------
- */
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getOrder } from "@/api/orders";
@@ -23,78 +5,141 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner, ErrorState } from "@/components/common/States";
 import { formatMoney } from "@/lib/format";
-import {
-  ORDER_STATUS,
-  ORDER_STATUS_COLOR,
-  ORDER_TERMINAL,
-  PAYMENT_POLL_INTERVAL_MS,
-  PAYMENT_POLL_MAX_ATTEMPTS,
-} from "@/lib/constants";
+import { ORDER_STATUS, ORDER_STATUS_COLOR, ORDER_TERMINAL, PAYMENT_POLL_INTERVAL_MS, PAYMENT_POLL_MAX_ATTEMPTS } from "@/lib/constants";
+import { CheckCircle2, XCircle, Clock, ShoppingBag } from "lucide-react";
+
+function StatusIcon({ status }) {
+  if (status === ORDER_STATUS.PAID)
+    return <CheckCircle2 className="h-16 w-16 text-success" />;
+  if (status === ORDER_STATUS.FAILED || status === ORDER_STATUS.CANCELLED)
+    return <XCircle className="h-16 w-16 text-danger" />;
+  return <Clock className="h-16 w-16 text-warning animate-pulse" />;
+}
+
+function StatusHeading({ status }) {
+  if (status === ORDER_STATUS.PAID) return "Payment confirmed!";
+  if (status === ORDER_STATUS.FAILED) return "Payment failed";
+  if (status === ORDER_STATUS.CANCELLED) return "Order cancelled";
+  return "Processing your payment…";
+}
 
 export default function OrderConfirmation() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
-  const [status, setStatus] = useState("loading"); // loading | ok | notfound | error
-  const attempts = useRef(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const pollRef = useRef(null);
 
-  useEffect(() => {
-    let timer;
-    let active = true;
+  const load = async () => {
+    try {
+      const o = await getOrder(id);
+      setOrder(o);
+      if (!ORDER_TERMINAL.includes(o.status)) {
+        startPolling();
+      }
+    } catch (e) {
+      setError(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const poll = async () => {
+  const startPolling = (attempt = 0) => {
+    if (attempt >= PAYMENT_POLL_MAX_ATTEMPTS) return;
+    pollRef.current = setTimeout(async () => {
       try {
         const o = await getOrder(id);
-        if (!active) return;
         setOrder(o);
-        setStatus("ok");
-        attempts.current += 1;
-        const terminal = ORDER_TERMINAL.includes(o.status);
-        if (!terminal && attempts.current < PAYMENT_POLL_MAX_ATTEMPTS) {
-          timer = setTimeout(poll, PAYMENT_POLL_INTERVAL_MS);
+        if (!ORDER_TERMINAL.includes(o.status)) {
+          startPolling(attempt + 1);
         }
-      } catch (e) {
-        if (active) setStatus(e?.status === 404 ? "notfound" : "error");
+      } catch {
+        startPolling(attempt + 1);
       }
-    };
-    poll();
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
+    }, PAYMENT_POLL_INTERVAL_MS);
+  };
+
+  useEffect(() => {
+    load();
+    return () => clearTimeout(pollRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (status === "loading") return <Spinner label="Loading order…" />;
-  if (status === "notfound") return <ErrorState message="Order not found." />;
-  if (status === "error") return <ErrorState message="Couldn't load the order." />;
+  if (loading) return <Spinner label="Loading order…" />;
+  if (error) return <ErrorState message="Couldn't load order." onRetry={load} />;
+  if (!order) return null;
 
-  const isProcessing = order.status === ORDER_STATUS.AWAITING_PAYMENT || order.status === ORDER_STATUS.PENDING;
-  const isFailed = order.status === ORDER_STATUS.FAILED;
+  const isTerminal = ORDER_TERMINAL.includes(order.status);
+  const isFailed = order.status === ORDER_STATUS.FAILED || order.status === ORDER_STATUS.CANCELLED;
+  const statusColor = ORDER_STATUS_COLOR[order.status] ?? "neutral";
 
-  // Minimal proof-of-wiring render — MCP agent implements Figma 1:12481/1:12670.
   return (
-    <div className="max-w-lg">
-      {isProcessing && <Spinner label="Confirming your payment…" />}
-      {!isProcessing && (
-        <>
-          <div className="mb-3 flex items-center gap-2">
-            <h1 className="font-display text-2xl font-extrabold">
-              {isFailed ? "Payment failed" : "Order confirmed"}
-            </h1>
-            <Badge tone={ORDER_STATUS_COLOR[order.status]}>{order.status}</Badge>
+    <div className="mx-auto max-w-lg py-8">
+      {/* status hero */}
+      <div className="mb-8 flex flex-col items-center gap-3 text-center">
+        <StatusIcon status={order.status} />
+        <h1 className="font-display text-2xl font-extrabold">
+          {StatusHeading({ status: order.status })}
+        </h1>
+        <Badge tone={statusColor} className="text-sm px-3 py-1">
+          {order.status}
+        </Badge>
+        {!isTerminal && (
+          <p className="text-sm text-muted-foreground">
+            Your payment is being processed. This page updates automatically.
+          </p>
+        )}
+        {isFailed && (
+          <p className="text-sm text-muted-foreground">
+            Your cart has been restored. Please try again.
+          </p>
+        )}
+      </div>
+
+      {/* order details */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="border-b border-border px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Order ID</p>
+              <p className="font-mono text-sm font-medium">{order.id}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-lg font-bold text-brand">{formatMoney(order.total)}</p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Order #{order.id}</p>
-          <p className="my-2 font-medium">Total {formatMoney(order.total)}</p>
-          {isFailed ? (
-            <Link to="/cart">
-              <Button variant="brand">Retry — back to cart</Button>
-            </Link>
-          ) : (
-            <Link to="/products">
-              <Button variant="outline">Continue shopping</Button>
-            </Link>
-          )}
-        </>
-      )}
+        </div>
+
+        {order.items?.length > 0 && (
+          <ul className="divide-y divide-border px-5">
+            {order.items.map((item) => (
+              <li key={item.id ?? item.productId} className="flex items-center justify-between gap-3 py-3 text-sm">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium line-clamp-1">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">SKU: {item.sku} · Qty: {item.quantity}</p>
+                </div>
+                <span>{formatMoney(Number(item.unitPrice) * item.quantity)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* CTAs */}
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <Button asChild className="flex-1">
+          <Link to="/products">
+            <ShoppingBag className="h-4 w-4" />
+            Continue shopping
+          </Link>
+        </Button>
+        {isFailed && (
+          <Button asChild variant="outline" className="flex-1">
+            <Link to="/checkout">Try again</Link>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
