@@ -3,6 +3,7 @@ package com.gsswec.ecommerce.products.infrastructure.persistence;
 import com.gsswec.ecommerce.products.application.port.out.StockStore;
 import com.gsswec.ecommerce.products.domain.model.Product;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,17 +16,17 @@ public class StockStoreAdapter implements StockStore {
     }
 
     @Override
-    public Optional<Product> findBySku(String sku) {
-        return jpa.findBySku(sku).map(ProductEntity::toDomain);
+    public Optional<Product> findById(UUID productId) {
+        return jpa.findById(productId).map(ProductEntity::toDomain);
     }
 
     @Override
-    public boolean tryDecrement(String sku, int quantity) {
-        return jpa.tryDecrement(sku, quantity) == 1;
+    public boolean tryDecrement(UUID productId, int quantity) {
+        return jpa.tryDecrement(productId, quantity) == 1;
     }
 
     @Override
-    public void increment(String sku, int quantity) {
-        jpa.increment(sku, quantity);
+    public void increment(UUID productId, int quantity) {
+        jpa.increment(productId, quantity);
     }
 }
