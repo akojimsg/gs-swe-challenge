@@ -16,6 +16,7 @@ class-by-class internals (that is the code's job).
 | [Order Placement & Stock Reservation](order-placement.md) | Orders, Products | Idempotent placement, the gRPC stock check, `SELECT … FOR UPDATE` reservation, concurrency. |
 | [Purchase Saga](purchase-saga.md) | Orders, Payments, Products, Notifications | The choreographed payment flow — happy path and compensation. |
 | [Notifications](notifications.md) | Notifications | The pure event consumer, templates, idempotent delivery, the log. |
+| [Frontend SPA](frontend-spa.md) | Frontend | The React SPA: routes→API, the purchase + CSV-import journeys, state/auth handling, how it consumes the Gateway contract. |
 
 ## Cross-cutting behaviours
 
