@@ -1,6 +1,7 @@
 package com.gsswec.ecommerce.notifications.application;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,8 +52,8 @@ class SendNotificationTest {
     void persistsFailedStatusWhenMailThrows() {
         UUID eventId = UUID.randomUUID();
         when(repository.existsByEventId(eventId)).thenReturn(false);
-        when(emailSender.send(any(), any(), any()))
-                .thenThrow(new RuntimeException("SMTP down"));
+        doThrow(new RuntimeException("SMTP down"))
+                .when(emailSender).send(any(), any(), any());
 
         useCase.execute(eventId, "order.paid", "buyer@example.com",
                 EmailTemplate.ORDER_PAID, "Your order is confirmed");
