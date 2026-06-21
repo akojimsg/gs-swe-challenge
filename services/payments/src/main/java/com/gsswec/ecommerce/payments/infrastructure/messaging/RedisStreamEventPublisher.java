@@ -1,7 +1,7 @@
-package com.gsswec.ecommerce.orders.infrastructure.messaging;
+package com.gsswec.ecommerce.payments.infrastructure.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gsswec.ecommerce.orders.application.port.out.EventPublisher;
+import com.gsswec.ecommerce.payments.application.port.out.EventPublisher;
 import com.gsswec.ecommerce.shared.events.base.DomainEvent;
 import java.util.Map;
 import org.springframework.data.redis.connection.stream.StreamRecords;
@@ -23,10 +23,9 @@ public class RedisStreamEventPublisher implements EventPublisher {
 
     // Publish AFTER the surrounding transaction commits. Serialize eagerly (so a bad
     // payload fails the business tx, not a post-commit callback), but defer the actual
-    // stream write to afterCommit. This removes the dual-write race: a consumer can
-    // never observe order.placed before the order row is durably committed, and a
-    // rolled-back tx publishes nothing. With no active transaction (tests, non-tx
-    // callers) we publish immediately.
+    // stream write to afterCommit so payment.succeeded/failed is never visible before
+    // the Payment row is durably committed, and a rolled-back tx publishes nothing.
+    // With no active transaction (tests, non-tx callers) we publish immediately.
     @Override
     public void publish(String stream, DomainEvent event) {
         String payload;

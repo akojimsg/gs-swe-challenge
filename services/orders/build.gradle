@@ -80,7 +80,7 @@ protobuf {
 }
 
 tasks.named("test") {
-    systemProperty "api.version", "1.43"
+    systemProperty "api.version", "1.44"
     ["DOCKER_HOST", "DOCKER_CONFIG", "TESTCONTAINERS_RYUK_DISABLED"].each { key ->
         def value = System.getenv(key)
         if (value != null) {
