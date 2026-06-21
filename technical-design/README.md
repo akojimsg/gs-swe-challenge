@@ -66,10 +66,11 @@ strictly requires — is stated plainly in the repository [scope note](#scope-no
 | L4 | [Code](c4/L4-code.md) | The hexagonal layering every service shares. |
 
 ### Architecture Decision Records — [`adr/`](adr/)
-Twelve records covering the load-bearing choices — datastore, event bus, saga
+Sixteen records covering the load-bearing choices — datastore, event bus, saga
 style, hexagonal architecture, functional Java, gateway, observability, test
-strategy, gRPC, service discovery, CQRS, and OLTP/OLAP separation. See the
-[ADR index](adr/README.md) for the full list and status table.
+strategy, gRPC, service discovery, CQRS, OLTP/OLAP separation, repository layout,
+API documentation, the concurrency/locking model, and the demo-seeding strategy.
+See the [ADR index](adr/README.md) for the full list and status table.
 
 ### Feature specifications — [`features/`](features/)
 Behavioural specs for each core capability — authentication & RBAC, catalogue &

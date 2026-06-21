@@ -5,6 +5,7 @@ import com.gsswec.ecommerce.products.domain.model.Product;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +26,12 @@ public class ReserveStock {
     @Transactional
     public Result reserve(List<Line> lines) {
         List<Shortfall> shortfalls = new ArrayList<>();
+        List<ReservedLine> reserved = new ArrayList<>();
 
         for (Line line : lines) {
-            Optional<Product> product = stock.findBySku(line.sku());
+            UUID productId = parseId(line.productId());
+            Optional<Product> product = productId == null
+                    ? Optional.empty() : stock.findById(productId);
             if (product.isEmpty()) {
                 shortfalls.add(new Shortfall(line, Reason.PRODUCT_NOT_FOUND, 0));
                 continue;
@@ -37,8 +41,12 @@ public class ReserveStock {
                 shortfalls.add(new Shortfall(line, Reason.PRODUCT_INACTIVE, p.stock()));
                 continue;
             }
-            boolean ok = stock.tryDecrement(line.sku(), line.quantity());
-            if (!ok) {
+            boolean ok = stock.tryDecrement(productId, line.quantity());
+            if (ok) {
+                // Authoritative details from the same locked read — Orders snapshots these.
+                reserved.add(new ReservedLine(
+                        p.id().toString(), p.sku(), p.name(), p.price(), line.quantity()));
+            } else {
                 shortfalls.add(new Shortfall(line, Reason.INSUFFICIENT_STOCK, p.stock()));
             }
         }
@@ -47,23 +55,38 @@ public class ReserveStock {
             // Roll back any successful decrements from this attempt.
             throw new ReservationFailed(shortfalls);
         }
-        return new Result(true, List.of());
+        return new Result(true, List.of(), reserved);
     }
 
     @Transactional
     public void release(List<Line> lines) {
         for (Line line : lines) {
-            stock.increment(line.sku(), line.quantity());
+            UUID productId = parseId(line.productId());
+            if (productId != null) {
+                stock.increment(productId, line.quantity());
+            }
+        }
+    }
+
+    private static UUID parseId(String id) {
+        try {
+            return id == null || id.isBlank() ? null : UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 
     public record Line(String productId, String sku, int quantity) {
     }
 
-    public record Result(boolean reserved, List<Shortfall> shortfalls) {
+    public record Result(boolean reserved, List<Shortfall> shortfalls, List<ReservedLine> lines) {
     }
 
     public record Shortfall(Line line, Reason reason, int available) {
+    }
+
+    public record ReservedLine(String productId, String sku, String name,
+            java.math.BigDecimal unitPrice, int quantity) {
     }
 
     public enum Reason {

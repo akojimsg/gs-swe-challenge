@@ -2,7 +2,7 @@
 
 **Service:** Frontend (React SPA) · **Tier:** Implemented
 
-The shopper- and admin-facing UI. A single-page app ([ADR-016](../adr/ADR-016-frontend-stack.md))
+The shopper- and admin-facing UI. A single-page app ([ADR-017](../adr/ADR-017-frontend-stack.md))
 that consumes **only** the Gateway REST surface ([ADR-006](../adr/ADR-006-api-gateway.md)) —
 no direct coupling to services, gRPC, events, or databases. It is how every
 acceptance-criterion flow (browse, search, CRUD, CSV import, purchase) is exercised
@@ -107,7 +107,7 @@ stack alongside the backend.
 
 ## Related
 
-- [ADR-016](../adr/ADR-016-frontend-stack.md) (stack choice) ·
+- [ADR-017](../adr/ADR-017-frontend-stack.md) (stack choice) ·
   [ADR-006](../adr/ADR-006-api-gateway.md) (the REST edge) ·
   [Order Placement](order-placement.md) · [Purchase Saga](purchase-saga.md) ·
   [CSV Import](csv-import.md) · design package in `gse-requirement-docs/frontend-design/`.

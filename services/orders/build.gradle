@@ -1,17 +1,90 @@
-// Orders service (:8083). Scaffold-level dependencies only; feature-specific
-// starters (web, security, data-jpa, grpc, gateway) are added by the issue
-// that implements each capability.
-
 plugins {
     id "org.springframework.boot"
     id "io.spring.dependency-management"
+    id "com.google.protobuf" version "0.9.4"
+}
+
+ext {
+    springdocVersion = "2.6.0"
+    jjwtVersion = "0.12.6"
+    grpcVersion = "1.63.0"
+    protobufVersion = "3.25.3"
+    grpcSpringVersion = "3.1.0.RELEASE"
+    resilience4jVersion = "2.2.0"
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.testcontainers:testcontainers-bom:1.20.4"
+    }
 }
 
 dependencies {
     implementation project(":shared")
-    implementation "org.springframework.boot:spring-boot-starter"
+
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
+    implementation "org.springframework.boot:spring-boot-starter-validation"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+
+    implementation "org.flywaydb:flyway-core"
+    implementation "org.flywaydb:flyway-database-postgresql"
+    runtimeOnly "org.postgresql:postgresql"
+
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
+
+    implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+
+    // gRPC client to Products' stock server.
+    implementation "net.devh:grpc-client-spring-boot-starter:${grpcSpringVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    compileOnly "org.apache.tomcat:annotations-api:6.0.53"
+
+    // Circuit breaker on the gRPC client (ADR-015 / #44).
+    implementation "io.github.resilience4j:resilience4j-spring-boot3:${resilience4jVersion}"
 
     testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "org.apache.httpcomponents.client5:httpclient5"
+    // In-process gRPC server for the cross-service placement IT (fake Products stock server).
+    testImplementation "net.devh:grpc-server-spring-boot-starter:${grpcSpringVersion}"
+    testImplementation "org.springframework.boot:spring-boot-testcontainers"
+    testImplementation "org.testcontainers:junit-jupiter"
+    testImplementation "org.testcontainers:postgresql"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+tasks.named("test") {
+    systemProperty "api.version", "1.43"
+    ["DOCKER_HOST", "DOCKER_CONFIG", "TESTCONTAINERS_RYUK_DISABLED"].each { key ->
+        def value = System.getenv(key)
+        if (value != null) {
+            environment key, value
+        }
+    }
 }

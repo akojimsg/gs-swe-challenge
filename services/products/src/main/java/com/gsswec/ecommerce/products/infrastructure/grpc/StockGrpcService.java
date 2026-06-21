@@ -28,8 +28,18 @@ public class StockGrpcService extends StockServiceGrpc.StockServiceImplBase {
 
         ReserveResponse response;
         try {
-            reserveStock.reserve(lines);
-            response = ReserveResponse.newBuilder().setReserved(true).build();
+            ReserveStock.Result result = reserveStock.reserve(lines);
+            ReserveResponse.Builder builder = ReserveResponse.newBuilder().setReserved(true);
+            for (ReserveStock.ReservedLine rl : result.lines()) {
+                builder.addLines(com.gsswec.ecommerce.stock.grpc.ReservedLine.newBuilder()
+                        .setProductId(rl.productId())
+                        .setSku(rl.sku())
+                        .setName(rl.name())
+                        .setUnitPrice(rl.unitPrice().toPlainString())
+                        .setQuantity(rl.quantity())
+                        .build());
+            }
+            response = builder.build();
         } catch (ReserveStock.ReservationFailed e) {
             ReserveResponse.Builder builder = ReserveResponse.newBuilder().setReserved(false);
             for (ReserveStock.Shortfall s : e.shortfalls()) {

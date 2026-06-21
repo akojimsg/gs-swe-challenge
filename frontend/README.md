@@ -1,7 +1,7 @@
 # Frontend — United Deals SPA
 
 React + Vite single-page app for `gs-swe-challenge`. Talks **only** to the Gateway
-REST surface (`/api/v1`). Stack & rationale: [ADR-016](../technical-design/adr/ADR-016-frontend-stack.md).
+REST surface (`/api/v1`). Stack & rationale: [ADR-017](../technical-design/adr/ADR-017-frontend-stack.md).
 Behaviour: [frontend-spa feature doc](../technical-design/features/frontend-spa.md).
 
 > **State of this scaffold:** the app is **build-ready**, not visually finished.

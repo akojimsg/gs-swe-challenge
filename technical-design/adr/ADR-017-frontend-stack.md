@@ -1,4 +1,4 @@
-# ADR-016 — Frontend stack: React + Vite SPA with shadcn/ui, Zustand, Tailwind
+# ADR-017 — Frontend stack: React + Vite SPA with shadcn/ui, Zustand, Tailwind
 
 **Status:** Accepted
 
