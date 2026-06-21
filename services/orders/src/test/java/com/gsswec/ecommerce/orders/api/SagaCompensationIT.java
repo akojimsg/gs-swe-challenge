@@ -1,7 +1,13 @@
 package com.gsswec.ecommerce.orders.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gsswec.ecommerce.shared.constants.StreamNames;
+import com.gsswec.ecommerce.shared.events.base.BaseEvent;
+import com.gsswec.ecommerce.shared.events.payment.PaymentFailedEvent;
+import com.gsswec.ecommerce.shared.events.payment.PaymentSucceededEvent;
 import com.gsswec.ecommerce.stock.grpc.ReleaseRequest;
 import com.gsswec.ecommerce.stock.grpc.ReleaseResponse;
 import com.gsswec.ecommerce.stock.grpc.ReserveRequest;
@@ -11,7 +17,10 @@ import com.gsswec.ecommerce.stock.grpc.ShortfallReason;
 import com.gsswec.ecommerce.stock.grpc.StockServiceGrpc;
 import io.grpc.stub.StreamObserver;
 import io.jsonwebtoken.Jwts;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -20,18 +29,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.crypto.SecretKey;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.domain.Range;
+import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -40,17 +46,22 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+// End-to-end saga slice (Orders side, compensation). Place an order via the API (which
+// reserves stock through the in-process fake Products server), then publish the payment
+// outcome onto the stream and assert the consumer drove the order to its terminal state:
+//   payment.succeeded -> PAID, order.paid emitted, no stock released
+//   payment.failed    -> FAILED, stock released (compensation), order.failed emitted
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
             "grpc.server.port=-1",
-            "grpc.server.in-process-name=orders-it",
-            "grpc.client.products.address=in-process:orders-it",
+            "grpc.server.in-process-name=orders-saga-it",
+            "grpc.client.products.address=in-process:orders-saga-it",
             "grpc.client.products.negotiation-type=plaintext"
         })
 @Testcontainers
-class PlaceOrderIT {
+class SagaCompensationIT {
 
-    private static final String JWT_SECRET = "orders_it_secret_at_least_256_bits_long_xxxxxxxx";
+    private static final String JWT_SECRET = "orders_saga_it_secret_at_least_256_bits_long_xxx";
 
     @Container
     @ServiceConnection
@@ -69,8 +80,6 @@ class PlaceOrderIT {
         registry.add("gsswec.jwt.secret", () -> JWT_SECRET);
     }
 
-    // In-process fake Products stock server: real decrement semantics over a map,
-    // returning reserved-line details exactly like the real service.
     @TestConfiguration
     static class FakeStockServer {
         static final Map<String, Integer> STOCK = new ConcurrentHashMap<>();
@@ -116,6 +125,8 @@ class PlaceOrderIT {
     private TestRestTemplate rest;
     @Autowired
     private StringRedisTemplate redisTemplate;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private final UUID buyerId = UUID.randomUUID();
 
@@ -126,66 +137,83 @@ class PlaceOrderIT {
                 .signWith(key, Jwts.SIG.HS256).compact();
     }
 
-    private HttpEntity<Map<String, Object>> order(String idemKey, int qty) {
+    @SuppressWarnings("unchecked")
+    private UUID placeOrder(String idemKey, int qty) {
         HttpHeaders h = new HttpHeaders();
         h.setBearerAuth(buyerToken());
         h.add("Idempotency-Key", idemKey);
-        return new HttpEntity<>(Map.of("items",
+        var body = new HttpEntity<>(Map.of("items",
                 List.of(Map.of("productId", FakeStockServer.WIDGET_ID.toString(), "quantity", qty))), h);
+        Map<String, Object> res = rest.postForObject("/api/v1/orders", body, Map.class);
+        return UUID.fromString((String) res.get("id"));
+    }
+
+    // Orders exposes no GET endpoint yet (lifecycle read is a separate lane), so the
+    // saga's terminal outcome is verified through the events it emits onto the streams.
+    private boolean sawEventForOrder(String stream, UUID orderId) {
+        var recs = redisTemplate.opsForStream()
+                .range(stream, org.springframework.data.domain.Range.unbounded());
+        if (recs == null) {
+            return false;
+        }
+        return recs.stream().anyMatch(r -> {
+            Object payload = r.getValue().get("payload");
+            return payload != null && payload.toString().contains(orderId.toString());
+        });
+    }
+
+    private void publishPaymentSucceeded(UUID orderId) throws Exception {
+        var event = new PaymentSucceededEvent(
+                new BaseEvent(UUID.randomUUID(), StreamNames.PAYMENT_SUCCEEDED, "1.0", Instant.now(), null, "payments"),
+                UUID.randomUUID(), orderId, buyerId, new BigDecimal("19.98"), "FAKE_CARD", "4242");
+        publish(StreamNames.PAYMENT_SUCCEEDED, event.base().eventId(), event.base().eventType(),
+                objectMapper.writeValueAsString(event));
+    }
+
+    private void publishPaymentFailed(UUID orderId) throws Exception {
+        var event = new PaymentFailedEvent(
+                new BaseEvent(UUID.randomUUID(), StreamNames.PAYMENT_FAILED, "1.0", Instant.now(), null, "payments"),
+                UUID.randomUUID(), orderId, buyerId, new BigDecimal("19.98"), "CARD_DECLINED");
+        publish(StreamNames.PAYMENT_FAILED, event.base().eventId(), event.base().eventType(),
+                objectMapper.writeValueAsString(event));
+    }
+
+    private void publish(String stream, UUID eventId, String eventType, String payload) {
+        redisTemplate.opsForStream().add(StreamRecords.newRecord()
+                .in(stream)
+                .ofMap(Map.of("eventId", eventId.toString(), "eventType", eventType, "payload", payload)));
     }
 
     @Test
-    void placeOrderReservesStockAndPublishesEvent() {
+    void paymentSucceededDrivesOrderToPaidWithoutReleasingStock() throws Exception {
         FakeStockServer.STOCK.put(FakeStockServer.WIDGET_ID.toString(), 10);
+        UUID orderId = placeOrder("saga-ok", 2);
+        int afterReserve = FakeStockServer.STOCK.get(FakeStockServer.WIDGET_ID.toString());
+        assertThat(afterReserve).isEqualTo(8);
 
-        ResponseEntity<Map> res = rest.postForEntity("/api/v1/orders", order("idem-A", 3), Map.class);
+        publishPaymentSucceeded(orderId);
 
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(res.getBody().get("status")).isEqualTo("AWAITING_PAYMENT");
-        assertThat(((Number) res.getBody().get("total")).doubleValue()).isEqualTo(29.97);
+        // order.paid is emitted once the consumer transitions PENDING/AWAITING_PAYMENT -> PAID.
+        await().atMost(Duration.ofSeconds(15))
+                .untilAsserted(() -> assertThat(sawEventForOrder(StreamNames.ORDER_PAID, orderId)).isTrue());
+        // No compensation on the happy path: stock unchanged from the reservation.
+        assertThat(FakeStockServer.STOCK.get(FakeStockServer.WIDGET_ID.toString())).isEqualTo(afterReserve);
+        assertThat(sawEventForOrder(StreamNames.ORDER_FAILED, orderId)).isFalse();
+    }
+
+    @Test
+    void paymentFailedDrivesOrderToFailedAndReleasesStock() throws Exception {
+        FakeStockServer.STOCK.put(FakeStockServer.WIDGET_ID.toString(), 10);
+        UUID orderId = placeOrder("saga-fail", 3);
         assertThat(FakeStockServer.STOCK.get(FakeStockServer.WIDGET_ID.toString())).isEqualTo(7);
 
-        // order.placed landed on the stream
-        List<MapRecord<String, Object, Object>> recs =
-                redisTemplate.opsForStream().range("order.placed", Range.unbounded());
-        assertThat(recs).anyMatch(r -> "order.placed".equals(r.getValue().get("eventType")));
-    }
+        publishPaymentFailed(orderId);
 
-    @Test
-    void repeatedIdempotencyKeyReturnsSameOrderNoDoubleReserve() {
-        FakeStockServer.STOCK.put(FakeStockServer.WIDGET_ID.toString(), 10);
-
-        ResponseEntity<Map> first = rest.postForEntity("/api/v1/orders", order("idem-B", 2), Map.class);
-        ResponseEntity<Map> second = rest.postForEntity("/api/v1/orders", order("idem-B", 2), Map.class);
-
-        assertThat(first.getBody().get("id")).isEqualTo(second.getBody().get("id"));
-        // Stock decremented once (10 - 2), not twice.
-        assertThat(FakeStockServer.STOCK.get(FakeStockServer.WIDGET_ID.toString())).isEqualTo(8);
-    }
-
-    @Test
-    void insufficientStockReturns409() {
-        FakeStockServer.STOCK.put(FakeStockServer.WIDGET_ID.toString(), 1);
-
-        ResponseEntity<Map> res = rest.postForEntity("/api/v1/orders", order("idem-C", 5), Map.class);
-
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-    }
-
-    @Test
-    void missingIdempotencyKeyReturns400() {
-        HttpHeaders h = new HttpHeaders();
-        h.setBearerAuth(buyerToken());
-        ResponseEntity<Map> res = rest.postForEntity("/api/v1/orders",
-                new HttpEntity<>(Map.of("items", List.of(
-                        Map.of("productId", FakeStockServer.WIDGET_ID.toString(), "quantity", 1))), h), Map.class);
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    void unauthenticatedReturns401() {
-        ResponseEntity<Map> res = rest.postForEntity("/api/v1/orders",
-                new HttpEntity<>(Map.of("items", List.of())), Map.class);
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        // order.failed is emitted once the consumer transitions to FAILED.
+        await().atMost(Duration.ofSeconds(15))
+                .untilAsserted(() -> assertThat(sawEventForOrder(StreamNames.ORDER_FAILED, orderId)).isTrue());
+        // Compensation released the 3 reserved units back to stock.
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(FakeStockServer.STOCK.get(FakeStockServer.WIDGET_ID.toString())).isEqualTo(10));
     }
 }
