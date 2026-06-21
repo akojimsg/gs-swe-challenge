@@ -14,9 +14,10 @@ import org.springframework.stereotype.Component;
 
 // Saga entry point: consumes order.placed via a Redis Streams consumer group.
 // At-least-once delivery means redeliveries happen, so we dedupe on the event's
-// eventId before doing any work. ProcessPayment is itself idempotent on orderId as
-// a second backstop. The record is ack'd by the container only when this returns
-// normally; a thrown exception leaves it pending for redelivery.
+// eventId, marking it processed only AFTER a successful charge — a transient failure
+// is retried on redelivery rather than permanently suppressed. ProcessPayment is
+// itself idempotent on orderId as a second backstop. A malformed payload
+// (non-retryable) is marked so it is not redelivered forever.
 @Component
 public class OrderPlacedConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
@@ -38,21 +39,27 @@ public class OrderPlacedConsumer implements StreamListener<String, MapRecord<Str
         Map<String, String> body = record.getValue();
         UUID eventId = UUID.fromString(body.get("eventId"));
 
-        if (!processedEvents.markIfNew(eventId)) {
+        if (processedEvents.isProcessed(eventId)) {
             log.debug("Skipping already-processed event {}", eventId);
             return;
         }
 
+        OrderPlacedEvent event;
         try {
-            OrderPlacedEvent event = objectMapper.readValue(body.get("payload"), OrderPlacedEvent.class);
-            processPayment.process(event.orderId(), event.userId(), event.total());
-            log.info("Processed payment for order {} (event {})", event.orderId(), eventId);
-        } catch (Exception e) {
-            // Non-recoverable parse/processing error: log and swallow so the record is
-            // ack'd rather than redelivered forever. A production system would route to a
-            // dead-letter stream here; the payment.failed compensation path is exercised
-            // by the saga itself, not by malformed inbound events.
-            log.error("Failed to process order.placed event {} — dropping", eventId, e);
+            event = objectMapper.readValue(body.get("payload"), OrderPlacedEvent.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            // Malformed payload is non-retryable — mark so it is not redelivered forever
+            // (a production system would route to a dead-letter stream here).
+            log.error("Failed to parse order.placed event {} — dropping", eventId, e);
+            processedEvents.markProcessed(eventId);
+            return;
         }
+
+        // A processing failure (DB/charge) propagates so the record stays pending and is
+        // retried on redelivery; ProcessPayment is idempotent on orderId. Mark only on
+        // success.
+        processPayment.process(event.orderId(), event.userId(), event.total());
+        processedEvents.markProcessed(eventId);
+        log.info("Processed payment for order {} (event {})", event.orderId(), eventId);
     }
 }

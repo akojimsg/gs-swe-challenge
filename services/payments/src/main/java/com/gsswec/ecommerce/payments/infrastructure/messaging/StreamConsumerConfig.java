@@ -16,8 +16,9 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 
 // Wires a Redis Streams consumer group for the payments saga. One consumer group
-// ("payments") on the order.placed stream gives us competing-consumer semantics and
-// pending-entry tracking (at-least-once). The container auto-acks on normal return.
+// ("payments") on the order.placed stream gives us competing-consumer semantics.
+// receiveAutoAck acks a record once onMessage returns normally, so it leaves the
+// Pending Entries List; a thrown exception leaves it pending for redelivery.
 @Configuration
 public class StreamConsumerConfig {
 
@@ -41,7 +42,7 @@ public class StreamConsumerConfig {
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(connectionFactory, options);
 
-        container.receive(
+        container.receiveAutoAck(
                 Consumer.from(GROUP, CONSUMER),
                 StreamOffset.create(StreamNames.ORDER_PLACED, ReadOffset.lastConsumed()),
                 orderPlacedConsumer);

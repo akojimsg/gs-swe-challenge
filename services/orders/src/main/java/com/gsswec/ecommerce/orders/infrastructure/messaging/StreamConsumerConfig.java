@@ -16,8 +16,9 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 
 // Wires the Orders-side saga consumers. One consumer group ("orders") subscribes to
-// both payment.succeeded and payment.failed for competing-consumer + pending-entry
-// (at-least-once) semantics. The container auto-acks on normal return from onMessage.
+// both payment.succeeded and payment.failed for competing-consumer semantics.
+// receiveAutoAck acks a record once onMessage returns normally, so it leaves the
+// Pending Entries List; a thrown exception leaves it pending for redelivery.
 @Configuration
 public class StreamConsumerConfig {
 
@@ -42,11 +43,11 @@ public class StreamConsumerConfig {
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(connectionFactory, options);
 
-        container.receive(
+        container.receiveAutoAck(
                 Consumer.from(GROUP, CONSUMER),
                 StreamOffset.create(StreamNames.PAYMENT_SUCCEEDED, ReadOffset.lastConsumed()),
                 paymentOutcomeConsumer);
-        container.receive(
+        container.receiveAutoAck(
                 Consumer.from(GROUP, CONSUMER),
                 StreamOffset.create(StreamNames.PAYMENT_FAILED, ReadOffset.lastConsumed()),
                 paymentOutcomeConsumer);

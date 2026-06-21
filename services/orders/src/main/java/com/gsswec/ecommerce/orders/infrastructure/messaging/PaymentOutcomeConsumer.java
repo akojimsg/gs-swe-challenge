@@ -15,10 +15,11 @@ import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
 // Saga consumer (Orders side): listens to both payment.succeeded and payment.failed.
-// Routes by the stream key the record arrived on. Dedupes on eventId (at-least-once),
-// then delegates to HandlePaymentOutcome, which is itself state-machine guarded.
-// Throwing on a transient failure leaves the record pending for redelivery; an
-// unrecoverable parse error is logged and swallowed so the record is ack'd.
+// Routes by the stream key the record arrived on. Dedupes on eventId, but only marks
+// an event processed AFTER the handler succeeds — so a transient failure is retried on
+// redelivery rather than being permanently suppressed. HandlePaymentOutcome is itself
+// state-machine guarded and idempotent. A malformed payload (non-retryable) is logged
+// and marked so it is not redelivered forever.
 @Component
 public class PaymentOutcomeConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
@@ -41,7 +42,7 @@ public class PaymentOutcomeConsumer implements StreamListener<String, MapRecord<
         Map<String, String> body = record.getValue();
         UUID eventId = UUID.fromString(body.get("eventId"));
 
-        if (!processedEvents.markIfNew(eventId)) {
+        if (processedEvents.isProcessed(eventId)) {
             log.debug("Skipping already-processed event {} on {}", eventId, stream);
             return;
         }
@@ -59,7 +60,14 @@ public class PaymentOutcomeConsumer implements StreamListener<String, MapRecord<
                 log.warn("Unexpected stream {} for event {}", stream, eventId);
             }
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            // Malformed payload is non-retryable — mark it so it is not redelivered
+            // forever (a production system would route to a dead-letter stream here).
             log.error("Failed to parse payment event {} on {} — dropping", eventId, stream, e);
+            processedEvents.markProcessed(eventId);
+            return;
         }
+        // Mark only AFTER a successful handle, so a transient failure (handler threw)
+        // is retried on redelivery rather than being permanently suppressed.
+        processedEvents.markProcessed(eventId);
     }
 }

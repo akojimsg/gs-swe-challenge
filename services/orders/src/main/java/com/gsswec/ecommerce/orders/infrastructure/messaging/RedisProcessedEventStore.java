@@ -21,9 +21,12 @@ public class RedisProcessedEventStore implements ProcessedEventStore {
     }
 
     @Override
-    public boolean markIfNew(UUID eventId) {
-        Boolean wasAbsent = redis.opsForValue()
-                .setIfAbsent(KEY_PREFIX + eventId, "1", TTL);
-        return Boolean.TRUE.equals(wasAbsent);
+    public boolean isProcessed(UUID eventId) {
+        return Boolean.TRUE.equals(redis.hasKey(KEY_PREFIX + eventId));
+    }
+
+    @Override
+    public void markProcessed(UUID eventId) {
+        redis.opsForValue().set(KEY_PREFIX + eventId, "1", TTL);
     }
 }
