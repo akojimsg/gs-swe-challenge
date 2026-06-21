@@ -81,6 +81,12 @@ class StockGrpcIT {
 
         assertThat(res.getReserved()).isTrue();
         assertThat(products.findBySku("GRPC-OK").orElseThrow().stock()).isEqualTo(7);
+        // Reserved-line details come back for the order snapshot (Products is price authority).
+        assertThat(res.getLinesList()).hasSize(1);
+        assertThat(res.getLines(0).getSku()).isEqualTo("GRPC-OK");
+        assertThat(res.getLines(0).getName()).isEqualTo("Seed GRPC-OK");
+        assertThat(res.getLines(0).getUnitPrice()).isEqualTo("9.99");
+        assertThat(res.getLines(0).getQuantity()).isEqualTo(3);
     }
 
     @Test

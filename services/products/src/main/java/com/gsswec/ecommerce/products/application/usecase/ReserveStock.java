@@ -25,6 +25,7 @@ public class ReserveStock {
     @Transactional
     public Result reserve(List<Line> lines) {
         List<Shortfall> shortfalls = new ArrayList<>();
+        List<ReservedLine> reserved = new ArrayList<>();
 
         for (Line line : lines) {
             Optional<Product> product = stock.findBySku(line.sku());
@@ -38,7 +39,11 @@ public class ReserveStock {
                 continue;
             }
             boolean ok = stock.tryDecrement(line.sku(), line.quantity());
-            if (!ok) {
+            if (ok) {
+                // Authoritative details from the same locked read — Orders snapshots these.
+                reserved.add(new ReservedLine(
+                        p.id().toString(), p.sku(), p.name(), p.price(), line.quantity()));
+            } else {
                 shortfalls.add(new Shortfall(line, Reason.INSUFFICIENT_STOCK, p.stock()));
             }
         }
@@ -47,7 +52,7 @@ public class ReserveStock {
             // Roll back any successful decrements from this attempt.
             throw new ReservationFailed(shortfalls);
         }
-        return new Result(true, List.of());
+        return new Result(true, List.of(), reserved);
     }
 
     @Transactional
@@ -60,10 +65,14 @@ public class ReserveStock {
     public record Line(String productId, String sku, int quantity) {
     }
 
-    public record Result(boolean reserved, List<Shortfall> shortfalls) {
+    public record Result(boolean reserved, List<Shortfall> shortfalls, List<ReservedLine> lines) {
     }
 
     public record Shortfall(Line line, Reason reason, int available) {
+    }
+
+    public record ReservedLine(String productId, String sku, String name,
+            java.math.BigDecimal unitPrice, int quantity) {
     }
 
     public enum Reason {
