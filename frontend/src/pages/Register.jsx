@@ -1,14 +1,3 @@
-/*
- * PAGE: Register
- * ---------------------------------------------------------------------------
- * Route:  /register  ·  Access: Public · Scope: ext (auth)  ·  Shell: AuthShell
- * Figma:  1:6340  ·  Spec: gse-requirement-docs/frontend-design/specs/auth.md
- *
- * API: register({email,password,firstName,lastName}) → 201 AuthResponse (BUYER).
- *      409 → "email already in use". 429 handled. Store session, honor ?redirect=.
- * BUILD NOTE (MCP): pull 1:6340 → AuthCard (register mode). Wiring is the contract.
- * ---------------------------------------------------------------------------
- */
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { register } from "@/api/auth";
@@ -17,49 +6,113 @@ import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/Button";
 
 export default function Register() {
-  const setSession = useAuthStore((s) => s.setSession);
-  const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/";
+  const setSession = useAuthStore((s) => s.setSession);
 
-  const onSubmit = async (e) => {
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", confirm: "" });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [globalError, setGlobalError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const onChange = (e) => {
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    setFieldErrors((fe) => ({ ...fe, [e.target.name]: undefined }));
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (!form.firstName.trim()) errs.firstName = "Required";
+    if (!form.lastName.trim()) errs.lastName = "Required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Enter a valid email";
+    if (form.password.length < 8) errs.password = "At least 8 characters";
+    if (form.password !== form.confirm) errs.confirm = "Passwords don't match";
+    return errs;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    const f = new FormData(e.currentTarget);
+    setGlobalError(null);
+    const errs = validate();
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setLoading(true);
     try {
-      const res = await register({
-        email: f.get("email"),
-        password: f.get("password"),
-        firstName: f.get("firstName"),
-        lastName: f.get("lastName"),
+      const data = await register({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.toLowerCase(),
+        password: form.password,
       });
-      setSession({ accessToken: res.accessToken, user: res.user });
-      navigate(decodeURIComponent(params.get("redirect") || "/"));
+      setSession({ accessToken: data.accessToken, user: data.user });
+      navigate(redirect, { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 409 ? "Email already in use." : "Couldn't create the account.");
-      setSubmitting(false);
+      if (err instanceof ApiError) {
+        if (err.status === 409) setFieldErrors((fe) => ({ ...fe, email: "Email already in use" }));
+        else if (err.status === 429) setGlobalError("Too many attempts — try again shortly.");
+        else setGlobalError("Something went wrong. Please try again.");
+      } else {
+        setGlobalError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Minimal proof-of-wiring render — MCP agent implements Figma 1:6340.
+  const field = (name, label, type = "text", extra = {}) => (
+    <div>
+      <label htmlFor={name} className="mb-1 block text-sm font-medium">{label}</label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        value={form[name]}
+        onChange={onChange}
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        {...extra}
+      />
+      {fieldErrors[name] && (
+        <p className="mt-1 text-xs text-danger">{fieldErrors[name]}</p>
+      )}
+    </div>
+  );
+
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <h1 className="font-display text-xl font-extrabold">Create account</h1>
-      {error && <p className="text-sm text-danger">{error}</p>}
-      <div className="flex gap-2">
-        <input name="firstName" placeholder="First name" className="w-full rounded-md border border-input px-3 py-2" />
-        <input name="lastName" placeholder="Last name" className="w-full rounded-md border border-input px-3 py-2" />
+    <div className="w-full max-w-sm">
+      <div className="mb-6 text-center">
+        <h1 className="text-xl font-semibold">Create account</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Start shopping today</p>
       </div>
-      <input name="email" type="email" required placeholder="Email" className="w-full rounded-md border border-input px-3 py-2" />
-      <input name="password" type="password" required minLength={8} placeholder="Password (min 8)" className="w-full rounded-md border border-input px-3 py-2" />
-      <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? "Creating…" : "Create account"}
-      </Button>
-      <p className="text-sm text-muted-foreground">
-        Have an account? <Link to="/login" className="text-brand">Sign in</Link>
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          {field("firstName", "First name", "text", { placeholder: "Jane", autoComplete: "given-name" })}
+          {field("lastName", "Last name", "text", { placeholder: "Doe", autoComplete: "family-name" })}
+        </div>
+        {field("email", "Email", "email", { placeholder: "you@example.com", autoComplete: "email" })}
+        {field("password", "Password", "password", { placeholder: "Min 8 characters", autoComplete: "new-password" })}
+        {field("confirm", "Confirm password", "password", { placeholder: "••••••••", autoComplete: "new-password" })}
+
+        {globalError && (
+          <p className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+            {globalError}
+          </p>
+        )}
+
+        <Button type="submit" disabled={loading} className="w-full" size="lg">
+          {loading ? "Creating account…" : "Create account"}
+        </Button>
+      </form>
+
+      <p className="mt-4 text-center text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link
+          to={`/login${redirect !== "/" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+          className="font-medium text-foreground hover:text-brand"
+        >
+          Sign in
+        </Link>
       </p>
-    </form>
+    </div>
   );
 }

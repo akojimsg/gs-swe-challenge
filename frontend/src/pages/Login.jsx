@@ -1,58 +1,105 @@
-/*
- * PAGE: Login
- * ---------------------------------------------------------------------------
- * Route:  /login  ·  Access: Public · Scope: ext (auth)  ·  Shell: AuthShell
- * Figma:  1:6340  ·  Spec: gse-requirement-docs/frontend-design/specs/auth.md
- *
- * API: login({email,password}) → AuthResponse {accessToken,user}. Store in auth
- *      store. 401 → ONE generic message (no account enumeration). 429 handled.
- * INTERACTION: honor ?redirect= so checkout → sign-in → back works (cart preserved).
- *      Never log credentials.
- * BUILD NOTE (MCP): pull 1:6340 → AuthCard form. Session wiring below is the contract.
- * ---------------------------------------------------------------------------
- */
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { login } from "@/api/auth";
+import { ApiError } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/Button";
 
 export default function Login() {
-  const setSession = useAuthStore((s) => s.setSession);
-  const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/";
+  const setSession = useAuthStore((s) => s.setSession);
 
-  const onSubmit = async (e) => {
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
-    const form = new FormData(e.currentTarget);
+    setLoading(true);
     try {
-      const res = await login({ email: form.get("email"), password: form.get("password") });
-      setSession({ accessToken: res.accessToken, user: res.user });
-      navigate(decodeURIComponent(params.get("redirect") || "/"));
-    } catch {
-      // Generic message for both 401 and others — no enumeration.
-      setError("Invalid email or password.");
-      setSubmitting(false);
+      const data = await login({ email: form.email, password: form.password });
+      setSession({ accessToken: data.accessToken, user: data.user });
+      navigate(redirect, { replace: true });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) setError("Invalid email or password.");
+        else if (err.status === 429) setError("Too many attempts — try again shortly.");
+        else setError("Something went wrong. Please try again.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Minimal proof-of-wiring render — MCP agent implements Figma 1:6340.
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <h1 className="font-display text-xl font-extrabold">Sign in</h1>
-      {error && <p className="text-sm text-danger">{error}</p>}
-      <input name="email" type="email" required placeholder="Email" className="w-full rounded-md border border-input px-3 py-2" />
-      <input name="password" type="password" required placeholder="Password" className="w-full rounded-md border border-input px-3 py-2" />
-      <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? "Signing in…" : "Sign in"}
-      </Button>
-      <p className="text-sm text-muted-foreground">
-        No account? <Link to="/register" className="text-brand">Create one</Link>
+    <div className="w-full max-w-sm">
+      <div className="mb-6 text-center">
+        <h1 className="text-xl font-semibold">Sign in</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Welcome back</p>
+      </div>
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <div>
+          <label htmlFor="email" className="mb-1 block text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            value={form.email}
+            onChange={onChange}
+            placeholder="you@example.com"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="mb-1 block text-sm font-medium">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            autoComplete="current-password"
+            value={form.password}
+            onChange={onChange}
+            placeholder="••••••••"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        {error && (
+          <p className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" disabled={loading} className="w-full" size="lg">
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
+
+      <p className="mt-4 text-center text-sm text-muted-foreground">
+        Don't have an account?{" "}
+        <Link
+          to={`/register${redirect !== "/" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+          className="font-medium text-foreground hover:text-brand"
+        >
+          Create one
+        </Link>
       </p>
-    </form>
+    </div>
   );
 }
