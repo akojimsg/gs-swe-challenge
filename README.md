@@ -110,34 +110,32 @@ order.placed                        order.placed
 
 ## Getting started
 
-### Prerequisites
+### Run the stack (the only prerequisite is Docker)
 
-- Docker Desktop (running)
-- VS Code with the **Dev Containers** extension
-
-### Open the dev container
+Everything — including each service's jar — is built **inside Docker**, so you do
+**not** need a JDK, Gradle, or Node on your machine. Just Docker.
 
 ```bash
-# In VS Code: open the gs-swe-challenge/ folder, then
-#   Command Palette → "Dev Containers: Reopen in Container"
+git clone https://github.com/akojimsg/gs-swe-challenge.git
+cd gs-swe-challenge
+make up      # build images + start the stack (Postgres, Redis, Mailhog, services)
+make seed    # load the sample catalog + demo users
 ```
 
-The container (Ubuntu 24.04 base) provisions the full toolchain on first build:
-`make` + build tools, SDKMAN → **Java 21 + Gradle**, nvm → **Node LTS**,
-**GitHub CLI**, and Docker (docker-in-docker). All builds, tests, and git/`gh`
-commands run inside the container; your source is bind-mounted from the host.
-
-### Run the stack
+`make up` is the single command. (It wraps `docker compose up --build -d`; you can
+run that directly if you prefer not to use `make`.) The first run builds the service
+images and may take a few minutes; subsequent runs are cached.
 
 ```bash
-make up        # build + start all services (Docker Compose)
-make up-obs    # also start the observability stack (Prometheus/Loki/Jaeger/Grafana)
-make seed      # seed sample data + test users
-make smoke     # run the smoke test against a running stack
-make test      # run the JVM test suite
-make down      # stop everything
-make logs      # tail service logs
+make seed    # seed sample data + test users
+make smoke   # run the smoke test against a running stack
+make down    # stop everything
+make logs    # tail service logs
+make ps      # show stack status
 ```
+
+`make up` starts the backend services and their datastores; the purchase flow
+runs end-to-end across them.
 
 ### Service URLs (local)
 
@@ -150,10 +148,22 @@ make logs      # tail service logs
 | Payments      | http://localhost:8084    |
 | Notifications | http://localhost:8085    |
 | Frontend      | http://localhost:3000    |
+| Mailhog       | http://localhost:8025    |
 | Grafana       | http://localhost:3001    |
 | Jaeger        | http://localhost:16686   |
-| Mailhog       | http://localhost:8025    |
 | Prometheus    | http://localhost:9090    |
+
+### Contributing (dev container)
+
+For **development** (not required to run the stack), the repo ships a VS Code dev
+container with the full toolchain — Java 21 + Gradle, Node LTS, GitHub CLI, and
+docker-in-docker. Open the `gs-swe-challenge/` folder in VS Code →
+Command Palette → **"Dev Containers: Reopen in Container"**. All builds, tests, and
+git/`gh` commands run inside it; your source is bind-mounted from the host.
+
+`make build` / `make test` / `make run-<svc>` (Gradle `bootRun`) are convenience
+targets for this inner-loop workflow and **do** require the toolchain — i.e. the dev
+container. Running the stack via `make up` does not.
 
 ### Seed credentials
 

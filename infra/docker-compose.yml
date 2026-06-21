@@ -46,6 +46,107 @@ services:
     networks:
       - gsswec
 
+  # --- Application services -------------------------------------------------
+  # Built from the shared multi-stage Dockerfile (services/Dockerfile), repo root
+  # as context, module selected via the SERVICE build arg.
+
+  users:
+    build: &svc-build
+      context: ..
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE: users
+    image: gsswec/users:${IMAGE_TAG:-local}
+    container_name: gsswec-users
+    environment: &svc-env
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-gsswec}
+      POSTGRES_USER: ${POSTGRES_USER:-gsswec}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_dev}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: ${JWT_SECRET:-change_me_base64_256_bit_secret_change_me_please}
+    ports:
+      - "${USERS_PORT:-8081}:8081"
+    depends_on: &svc-deps
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: &svc-health
+      # Actuator health reflects readiness (DB + Redis wired), not just an open port.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      - gsswec
+
+  products:
+    build:
+      <<: *svc-build
+      args:
+        SERVICE: products
+    image: gsswec/products:${IMAGE_TAG:-local}
+    container_name: gsswec-products
+    environment:
+      <<: *svc-env
+      PRODUCTS_GRPC_PORT: "50051"
+    ports:
+      - "${PRODUCTS_PORT:-8082}:8082"
+    depends_on: *svc-deps
+    healthcheck:
+      <<: *svc-health
+      test: ["CMD", "curl", "-fsS", "http://localhost:8082/actuator/health"]
+    networks:
+      - gsswec
+
+  orders:
+    build:
+      <<: *svc-build
+      args:
+        SERVICE: orders
+    image: gsswec/orders:${IMAGE_TAG:-local}
+    container_name: gsswec-orders
+    environment:
+      <<: *svc-env
+      # Orders reserves stock from Products over gRPC.
+      PRODUCTS_GRPC_ADDRESS: static://products:50051
+    ports:
+      - "${ORDERS_PORT:-8083}:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      products:
+        condition: service_healthy
+    healthcheck:
+      <<: *svc-health
+      test: ["CMD", "curl", "-fsS", "http://localhost:8083/actuator/health"]
+    networks:
+      - gsswec
+
+  payments:
+    build:
+      <<: *svc-build
+      args:
+        SERVICE: payments
+    image: gsswec/payments:${IMAGE_TAG:-local}
+    container_name: gsswec-payments
+    environment: *svc-env
+    ports:
+      - "${PAYMENTS_PORT:-8084}:8084"
+    depends_on: *svc-deps
+    healthcheck:
+      <<: *svc-health
+      test: ["CMD", "curl", "-fsS", "http://localhost:8084/actuator/health"]
+    networks:
+      - gsswec
+
 volumes:
   postgres-data:
   redis-data:
