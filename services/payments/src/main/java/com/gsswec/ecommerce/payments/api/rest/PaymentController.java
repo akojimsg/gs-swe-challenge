@@ -18,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/payments")
-@Tag(name = "Payments", description = "Read access to saga-driven payments")
+@Tag(name = "Payments", description = "Look up payment records and their status")
 @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
 public class PaymentController {
 

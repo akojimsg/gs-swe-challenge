@@ -15,7 +15,9 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Payments Service API")
-                        .description("Saga payment processing (consumes order.placed) and payment read access.")
+                        .description("Retrieve payment records and their status (e.g. SUCCEEDED, FAILED) "
+                                + "by payment id or order id. Payments are created automatically when an "
+                                + "order is placed; there is no endpoint to initiate a payment directly.")
                         .version("v1"))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme()
