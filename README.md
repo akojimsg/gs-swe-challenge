@@ -110,63 +110,50 @@ order.placed                        order.placed
 
 ## Getting started
 
-### Run the stack (the only prerequisite is Docker)
+### Prerequisites
 
-Everything — including each service's jar — is built **inside Docker**, so you do
-**not** need a JDK, Gradle, or Node on your machine. Just Docker.
+- Docker Desktop (running)
+- VS Code with the **Dev Containers** extension
 
-```bash
-git clone https://github.com/akojimsg/gs-swe-challenge.git
-cd gs-swe-challenge
-make up      # build images + start the stack (Postgres, Redis, Mailhog, services)
-make seed    # load the sample catalog + demo users
-```
-
-`make up` is the single command. (It wraps `docker compose up --build -d`; you can
-run that directly if you prefer not to use `make`.) The first run builds the service
-images and may take a few minutes; subsequent runs are cached.
+### Open the dev container
 
 ```bash
-make seed    # seed sample data + test users
-make smoke   # run the smoke test against a running stack
-make down    # stop everything
-make logs    # tail service logs
-make ps      # show stack status
+# In VS Code: open the gs-swe-challenge/ folder, then
+#   Command Palette → "Dev Containers: Reopen in Container"
 ```
 
-> **Scope of the running stack today.** `make up` brings up the four implemented
-> backend services (Users, Products, Orders, Payments) plus their datastores — the
-> full purchase saga runs end-to-end. The **API Gateway** ([#15]), **Notifications**
-> ([#14]), and the **frontend** ([#16]) are tracked separately and join this Compose
-> file as their lanes land; until then, reach the services on their own ports below.
+The container (Ubuntu 24.04 base) provisions the full toolchain on first build:
+`make` + build tools, SDKMAN → **Java 21 + Gradle**, nvm → **Node LTS**,
+**GitHub CLI**, and Docker (docker-in-docker). All builds, tests, and git/`gh`
+commands run inside the container; your source is bind-mounted from the host.
+
+### Run the stack
+
+```bash
+make up        # build + start all services (Docker Compose)
+make up-obs    # also start the observability stack (Prometheus/Loki/Jaeger/Grafana)
+make seed      # seed sample data + test users
+make smoke     # run the smoke test against a running stack
+make test      # run the JVM test suite
+make down      # stop everything
+make logs      # tail service logs
+```
 
 ### Service URLs (local)
 
-| Service       | URL                      | In `make up` today |
-|---------------|--------------------------|--------------------|
-| Users         | http://localhost:8081    | ✅ |
-| Products      | http://localhost:8082    | ✅ |
-| Orders        | http://localhost:8083    | ✅ |
-| Payments      | http://localhost:8084    | ✅ |
-| Mailhog       | http://localhost:8025    | ✅ (infra) |
-| Gateway       | http://localhost:8080    | ⏳ #15 |
-| Notifications | http://localhost:8085    | ⏳ #14 |
-| Frontend      | http://localhost:3000    | ⏳ #16 |
-| Grafana       | http://localhost:3001    | ⏳ observability |
-| Jaeger        | http://localhost:16686   | ⏳ observability |
-| Prometheus    | http://localhost:9090    | ⏳ observability |
-
-### Contributing (dev container)
-
-For **development** (not required to run the stack), the repo ships a VS Code dev
-container with the full toolchain — Java 21 + Gradle, Node LTS, GitHub CLI, and
-docker-in-docker. Open the `gs-swe-challenge/` folder in VS Code →
-Command Palette → **"Dev Containers: Reopen in Container"**. All builds, tests, and
-git/`gh` commands run inside it; your source is bind-mounted from the host.
-
-`make build` / `make test` / `make run-<svc>` (Gradle `bootRun`) are convenience
-targets for this inner-loop workflow and **do** require the toolchain — i.e. the dev
-container. Running the stack via `make up` does not.
+| Service       | URL                      |
+|---------------|--------------------------|
+| Gateway       | http://localhost:8080    |
+| Users         | http://localhost:8081    |
+| Products      | http://localhost:8082    |
+| Orders        | http://localhost:8083    |
+| Payments      | http://localhost:8084    |
+| Notifications | http://localhost:8085    |
+| Frontend      | http://localhost:3000    |
+| Grafana       | http://localhost:3001    |
+| Jaeger        | http://localhost:16686   |
+| Mailhog       | http://localhost:8025    |
+| Prometheus    | http://localhost:9090    |
 
 ### Seed credentials
 
@@ -255,8 +242,3 @@ stack choice. The full rationale lives in the design doc at
 This project was built with AI-assisted tooling. Architecture, design
 trade-offs, and final implementation decisions are my own; AI was used to
 accelerate scaffolding, boilerplate, and documentation.
-
-<!-- issue links -->
-[#14]: https://github.com/akojimsg/gs-swe-challenge/issues/14
-[#15]: https://github.com/akojimsg/gs-swe-challenge/issues/15
-[#16]: https://github.com/akojimsg/gs-swe-challenge/issues/16
