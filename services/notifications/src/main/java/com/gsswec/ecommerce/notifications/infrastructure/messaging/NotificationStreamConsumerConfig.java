@@ -17,10 +17,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 
-// Subscribes to all notification-triggering streams under a single consumer group.
-// receiveAutoAck acks on clean return; a thrown exception leaves the record pending
-// for redelivery — giving us at-least-once delivery with dedup via the unique
-// event_id index in the notification_log table.
 @Configuration
 public class NotificationStreamConsumerConfig {
 
