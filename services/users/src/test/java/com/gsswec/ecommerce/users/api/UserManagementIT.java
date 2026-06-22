@@ -145,6 +145,29 @@ class UserManagementIT {
     }
 
     @Test
+    void internalEmailLookupResolvesWithoutAuth() {
+        String token = register("internal-lookup@test.com");
+        String userId = userIdFromToken("internal-lookup@test.com", token);
+
+        // No bearer token — the internal endpoint is permitted (private-network only,
+        // not routed by the gateway).
+        ResponseEntity<Map> response = rest.exchange(
+                "/internal/users/" + userId + "/email", HttpMethod.GET, bearer(null), Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsEntry("userId", userId);
+        assertThat(response.getBody()).containsEntry("email", "internal-lookup@test.com");
+    }
+
+    @Test
+    void internalEmailLookupReturns404ForUnknownUser() {
+        ResponseEntity<Map> response = rest.exchange(
+                "/internal/users/" + UUID.randomUUID() + "/email", HttpMethod.GET, bearer(null), Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void getUnknownUserReturns404ForAdmin() {
         String adminToken = registerAdmin("admin404@test.com");
 
