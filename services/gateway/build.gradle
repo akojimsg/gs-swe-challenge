@@ -1,17 +1,54 @@
-// Gateway service (:8080). Scaffold-level dependencies only; feature-specific
-// starters (web, security, data-jpa, grpc, gateway) are added by the issue
-// that implements each capability.
+// Gateway service (:8080) — the single edge: routing, edge JWT validation,
+// request-id propagation (rate limiting + circuit breakers land in a follow-up).
+// Spring Cloud Gateway is REACTIVE (WebFlux); filters + security are the reactive
+// variants, not the servlet pattern the other services use.
 
 plugins {
     id "org.springframework.boot"
     id "io.spring.dependency-management"
 }
 
+ext {
+    // Spring Cloud 2023.0.x is the release train aligned with Spring Boot 3.3.x.
+    springCloudVersion = "2023.0.3"
+    jjwtVersion = "0.12.6"
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        mavenBom "org.testcontainers:testcontainers-bom:1.20.4"
+    }
+}
+
 dependencies {
     implementation project(":shared")
-    implementation "org.springframework.boot:spring-boot-starter"
+
+    // Reactive gateway + reactive security (WebFlux).
+    implementation "org.springframework.cloud:spring-cloud-starter-gateway"
+    implementation "org.springframework.boot:spring-boot-starter-security"
     implementation "org.springframework.boot:spring-boot-starter-actuator"
 
+    // JWT validation only (Users mints; the edge verifies) — same lib/version as services.
+    implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+
+    implementation "io.micrometer:micrometer-registry-prometheus"
+
     testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "io.projectreactor:reactor-test"
+    // Integration tests stub the upstream services with a WireMock server.
+    testImplementation "org.wiremock:wiremock-standalone:3.9.2"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.named("test") {
+    ["DOCKER_HOST", "DOCKER_CONFIG", "TESTCONTAINERS_RYUK_DISABLED"].each { key ->
+        def value = System.getenv(key)
+        if (value != null) {
+            environment key, value
+        }
+    }
 }

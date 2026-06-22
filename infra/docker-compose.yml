@@ -147,6 +147,41 @@ services:
     networks:
       - gsswec
 
+  # The single edge (:8080): routes /api/v1/** to the services by in-network name,
+  # validates JWTs, and propagates a trace id. The SPA talks only to this.
+  gateway:
+    build:
+      <<: *svc-build
+      args:
+        SERVICE: gateway
+    image: gsswec/gateway:${IMAGE_TAG:-local}
+    container_name: gsswec-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      JWT_SECRET: ${JWT_SECRET:-change_me_base64_256_bit_secret_change_me_please}
+      # Resolve frozen route placeholders to compose service names.
+      USERS_URI: http://users:8081
+      PRODUCTS_URI: http://products:8082
+      ORDERS_URI: http://orders:8083
+      PAYMENTS_URI: http://payments:8084
+      NOTIFICATIONS_URI: http://notifications:8085
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      users:
+        condition: service_healthy
+      products:
+        condition: service_healthy
+      orders:
+        condition: service_healthy
+      payments:
+        condition: service_healthy
+    healthcheck:
+      <<: *svc-health
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+    networks:
+      - gsswec
+
 volumes:
   postgres-data:
   redis-data:
