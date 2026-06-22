@@ -24,12 +24,6 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
-// Single listener wired to multiple streams by NotificationStreamConsumerConfig.
-// Publishers write {eventId, eventType, payload}; the domain data is the JSON in
-// `payload`, deserialized here into the shared event record. The recipient comes
-// from the event (user.registered carries the email), a UserDirectory lookup by
-// userId (saga + role-change events), or the configured admin address (product
-// events have no end user). When no recipient can be resolved the event is skipped.
 @Component
 public class NotificationEventListener implements StreamListener<String, MapRecord<String, String, String>> {
 
@@ -80,8 +74,6 @@ public class NotificationEventListener implements StreamListener<String, MapReco
         return objectMapper.readValue(payload, type);
     }
 
-    // --- user events ----------------------------------------------------------
-
     private void onUserRegistered(UserRegisteredEvent e) {
         sendNotification.execute(e.base().eventId(), StreamNames.USER_REGISTERED, e.email(),
                 EmailTemplate.WELCOME, "Welcome to United Deals!");
@@ -91,8 +83,6 @@ public class NotificationEventListener implements StreamListener<String, MapReco
         dispatchToUser(e.base().eventId(), StreamNames.USER_ROLE_CHANGED, e.userId(),
                 EmailTemplate.ROLE_CHANGED, "Your account role has been updated to: " + e.newRole());
     }
-
-    // --- product events (admin alerts; no end user) ---------------------------
 
     private void onProductCreated(ProductCreatedEvent e) {
         sendNotification.execute(e.base().eventId(), StreamNames.PRODUCT_CREATED, adminEmail,
@@ -109,8 +99,6 @@ public class NotificationEventListener implements StreamListener<String, MapReco
         sendNotification.execute(e.base().eventId(), StreamNames.PRODUCT_IMPORTED, adminEmail,
                 EmailTemplate.PRODUCT_IMPORTED, "CSV import complete — " + e.imported() + " products imported.");
     }
-
-    // --- saga events (resolve recipient by userId) ----------------------------
 
     private void onOrderPaid(OrderPaidEvent e) {
         dispatchToUser(e.base().eventId(), StreamNames.ORDER_PAID, e.userId(),

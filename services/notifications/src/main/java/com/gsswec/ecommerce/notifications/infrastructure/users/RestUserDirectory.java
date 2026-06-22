@@ -13,11 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-// Looks up a user's email from the Users service's internal endpoint
-// (GET /internal/users/{id}/email), reachable only on the private network. Results
-// are cached with a TTL so steady-state delivery is not gated on a per-event HTTP
-// round-trip. Any failure resolves to empty — the caller falls back rather than
-// failing the notification.
 @Component
 public class RestUserDirectory implements UserDirectory {
 
