@@ -1,9 +1,22 @@
 package com.gsswec.ecommerce.notifications.api.event;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gsswec.ecommerce.notifications.application.port.out.UserDirectory;
 import com.gsswec.ecommerce.notifications.application.usecase.SendNotification;
 import com.gsswec.ecommerce.notifications.domain.model.EmailTemplate;
+import com.gsswec.ecommerce.notifications.infrastructure.config.NotificationsProperties;
 import com.gsswec.ecommerce.shared.constants.StreamNames;
+import com.gsswec.ecommerce.shared.events.order.OrderFailedEvent;
+import com.gsswec.ecommerce.shared.events.order.OrderPaidEvent;
+import com.gsswec.ecommerce.shared.events.payment.PaymentFailedEvent;
+import com.gsswec.ecommerce.shared.events.payment.PaymentSucceededEvent;
+import com.gsswec.ecommerce.shared.events.product.ProductCreatedEvent;
+import com.gsswec.ecommerce.shared.events.product.ProductImportedEvent;
+import com.gsswec.ecommerce.shared.events.product.ProductStockLowEvent;
+import com.gsswec.ecommerce.shared.events.user.UserRegisteredEvent;
+import com.gsswec.ecommerce.shared.events.user.UserRoleChangedEvent;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,113 +25,125 @@ import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
 // Single listener wired to multiple streams by NotificationStreamConsumerConfig.
-// Each dispatch method selects the correct template and extracts the recipient
-// from event fields; unknown events are logged and skipped.
+// Publishers write {eventId, eventType, payload}; the domain data is the JSON in
+// `payload`, deserialized here into the shared event record. The recipient comes
+// from the event (user.registered carries the email), a UserDirectory lookup by
+// userId (saga + role-change events), or the configured admin address (product
+// events have no end user). When no recipient can be resolved the event is skipped.
 @Component
 public class NotificationEventListener implements StreamListener<String, MapRecord<String, String, String>> {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationEventListener.class);
 
     private final SendNotification sendNotification;
+    private final UserDirectory userDirectory;
+    private final ObjectMapper objectMapper;
+    private final String adminEmail;
 
-    public NotificationEventListener(SendNotification sendNotification) {
+    public NotificationEventListener(SendNotification sendNotification, UserDirectory userDirectory,
+            ObjectMapper objectMapper, NotificationsProperties properties) {
         this.sendNotification = sendNotification;
+        this.userDirectory = userDirectory;
+        this.objectMapper = objectMapper;
+        this.adminEmail = properties.adminEmail();
     }
 
     @Override
     public void onMessage(MapRecord<String, String, String> record) {
-        Map<String, String> fields = record.getValue();
         String eventType = record.getStream();
-        String rawEventId = fields.get("eventId");
-
-        if (rawEventId == null) {
-            log.warn("Missing eventId on stream {}, record {}", eventType, record.getId());
+        Map<String, String> fields = record.getValue();
+        String payload = fields.get("payload");
+        if (payload == null) {
+            log.warn("Missing payload on stream {}, record {}", eventType, record.getId());
             return;
         }
 
-        UUID eventId;
         try {
-            eventId = UUID.fromString(rawEventId);
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid eventId '{}' on stream {}", rawEventId, eventType);
+            switch (eventType) {
+                case StreamNames.USER_REGISTERED -> onUserRegistered(read(payload, UserRegisteredEvent.class));
+                case StreamNames.USER_ROLE_CHANGED -> onRoleChanged(read(payload, UserRoleChangedEvent.class));
+                case StreamNames.PRODUCT_CREATED -> onProductCreated(read(payload, ProductCreatedEvent.class));
+                case StreamNames.PRODUCT_STOCK_LOW -> onStockLow(read(payload, ProductStockLowEvent.class));
+                case StreamNames.PRODUCT_IMPORTED -> onProductImported(read(payload, ProductImportedEvent.class));
+                case StreamNames.ORDER_PAID -> onOrderPaid(read(payload, OrderPaidEvent.class));
+                case StreamNames.ORDER_FAILED -> onOrderFailed(read(payload, OrderFailedEvent.class));
+                case StreamNames.PAYMENT_SUCCEEDED -> onPaymentSucceeded(read(payload, PaymentSucceededEvent.class));
+                case StreamNames.PAYMENT_FAILED -> onPaymentFailed(read(payload, PaymentFailedEvent.class));
+                default -> log.debug("No notification handler for event type '{}'", eventType);
+            }
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            log.error("Failed to parse {} payload, record {} — dropping", eventType, record.getId(), e);
+        }
+    }
+
+    private <T> T read(String payload, Class<T> type) throws com.fasterxml.jackson.core.JsonProcessingException {
+        return objectMapper.readValue(payload, type);
+    }
+
+    // --- user events ----------------------------------------------------------
+
+    private void onUserRegistered(UserRegisteredEvent e) {
+        sendNotification.execute(e.base().eventId(), StreamNames.USER_REGISTERED, e.email(),
+                EmailTemplate.WELCOME, "Welcome to United Deals!");
+    }
+
+    private void onRoleChanged(UserRoleChangedEvent e) {
+        dispatchToUser(e.base().eventId(), StreamNames.USER_ROLE_CHANGED, e.userId(),
+                EmailTemplate.ROLE_CHANGED, "Your account role has been updated to: " + e.newRole());
+    }
+
+    // --- product events (admin alerts; no end user) ---------------------------
+
+    private void onProductCreated(ProductCreatedEvent e) {
+        sendNotification.execute(e.base().eventId(), StreamNames.PRODUCT_CREATED, adminEmail,
+                EmailTemplate.PRODUCT_CREATED, "Product listed: " + e.name());
+    }
+
+    private void onStockLow(ProductStockLowEvent e) {
+        sendNotification.execute(e.base().eventId(), StreamNames.PRODUCT_STOCK_LOW, adminEmail,
+                EmailTemplate.STOCK_LOW,
+                "Low stock alert — SKU " + e.sku() + " has " + e.currentStock() + " units remaining.");
+    }
+
+    private void onProductImported(ProductImportedEvent e) {
+        sendNotification.execute(e.base().eventId(), StreamNames.PRODUCT_IMPORTED, adminEmail,
+                EmailTemplate.PRODUCT_IMPORTED, "CSV import complete — " + e.imported() + " products imported.");
+    }
+
+    // --- saga events (resolve recipient by userId) ----------------------------
+
+    private void onOrderPaid(OrderPaidEvent e) {
+        dispatchToUser(e.base().eventId(), StreamNames.ORDER_PAID, e.userId(),
+                EmailTemplate.ORDER_PAID, "Your order " + e.orderId() + " is confirmed — payment received.");
+    }
+
+    private void onOrderFailed(OrderFailedEvent e) {
+        dispatchToUser(e.base().eventId(), StreamNames.ORDER_FAILED, e.userId(),
+                EmailTemplate.ORDER_FAILED, "Order " + e.orderId() + " could not be completed. Please try again.");
+    }
+
+    private void onPaymentSucceeded(PaymentSucceededEvent e) {
+        dispatchToUser(e.base().eventId(), StreamNames.PAYMENT_SUCCEEDED, e.userId(),
+                EmailTemplate.PAYMENT_SUCCEEDED, "Payment of $" + e.amount() + " was successful.");
+    }
+
+    private void onPaymentFailed(PaymentFailedEvent e) {
+        dispatchToUser(e.base().eventId(), StreamNames.PAYMENT_FAILED, e.userId(),
+                EmailTemplate.PAYMENT_FAILED,
+                "Payment failed: " + e.reason() + ". Please update your payment method.");
+    }
+
+    // Resolve the recipient email from userId; skip the notification if it can't
+    // be resolved (e.g. the Users lookup is unavailable) rather than emailing a
+    // placeholder address.
+    private void dispatchToUser(UUID eventId, String eventType, UUID userId,
+            EmailTemplate template, String body) {
+        Optional<String> recipient = userDirectory.emailFor(userId);
+        if (recipient.isEmpty()) {
+            log.warn("No email resolved for user {} ({}); skipping notification for event {}",
+                    userId, eventType, eventId);
             return;
         }
-
-        switch (eventType) {
-            case StreamNames.USER_REGISTERED -> dispatchUserRegistered(eventId, fields);
-            case StreamNames.USER_ROLE_CHANGED -> dispatchRoleChanged(eventId, fields);
-            case StreamNames.PRODUCT_CREATED -> dispatchProductCreated(eventId, fields);
-            case StreamNames.PRODUCT_STOCK_LOW -> dispatchStockLow(eventId, fields);
-            case StreamNames.PRODUCT_IMPORTED -> dispatchProductImported(eventId, fields);
-            case StreamNames.ORDER_PAID -> dispatchOrderPaid(eventId, fields);
-            case StreamNames.ORDER_FAILED -> dispatchOrderFailed(eventId, fields);
-            case StreamNames.PAYMENT_SUCCEEDED -> dispatchPaymentSucceeded(eventId, fields);
-            case StreamNames.PAYMENT_FAILED -> dispatchPaymentFailed(eventId, fields);
-            default -> log.debug("No notification handler for event type '{}'", eventType);
-        }
-    }
-
-    private void dispatchUserRegistered(UUID eventId, Map<String, String> fields) {
-        String recipient = fields.getOrDefault("email", "unknown@gsswec.com");
-        String name = fields.getOrDefault("name", "Customer");
-        sendNotification.execute(eventId, StreamNames.USER_REGISTERED, recipient,
-                EmailTemplate.WELCOME, "Welcome to United Deals, " + name + "!");
-    }
-
-    private void dispatchRoleChanged(UUID eventId, Map<String, String> fields) {
-        String recipient = fields.getOrDefault("email", "unknown@gsswec.com");
-        String newRole = fields.getOrDefault("newRole", "USER");
-        sendNotification.execute(eventId, StreamNames.USER_ROLE_CHANGED, recipient,
-                EmailTemplate.ROLE_CHANGED, "Your account role has been updated to: " + newRole);
-    }
-
-    private void dispatchProductCreated(UUID eventId, Map<String, String> fields) {
-        String adminEmail = fields.getOrDefault("adminEmail", "admin@gsswec.com");
-        String productName = fields.getOrDefault("name", "a new product");
-        sendNotification.execute(eventId, StreamNames.PRODUCT_CREATED, adminEmail,
-                EmailTemplate.PRODUCT_CREATED, "Product listed: " + productName);
-    }
-
-    private void dispatchStockLow(UUID eventId, Map<String, String> fields) {
-        String adminEmail = fields.getOrDefault("adminEmail", "admin@gsswec.com");
-        String sku = fields.getOrDefault("sku", "unknown");
-        String qty = fields.getOrDefault("stockQty", "?");
-        sendNotification.execute(eventId, StreamNames.PRODUCT_STOCK_LOW, adminEmail,
-                EmailTemplate.STOCK_LOW, "Low stock alert — SKU " + sku + " has " + qty + " units remaining.");
-    }
-
-    private void dispatchProductImported(UUID eventId, Map<String, String> fields) {
-        String adminEmail = fields.getOrDefault("adminEmail", "admin@gsswec.com");
-        String count = fields.getOrDefault("importedCount", "?");
-        sendNotification.execute(eventId, StreamNames.PRODUCT_IMPORTED, adminEmail,
-                EmailTemplate.PRODUCT_IMPORTED, "CSV import complete — " + count + " products imported.");
-    }
-
-    private void dispatchOrderPaid(UUID eventId, Map<String, String> fields) {
-        String recipient = fields.getOrDefault("userEmail", "unknown@gsswec.com");
-        String orderId = fields.getOrDefault("orderId", "");
-        sendNotification.execute(eventId, StreamNames.ORDER_PAID, recipient,
-                EmailTemplate.ORDER_PAID, "Your order " + orderId + " is confirmed — payment received.");
-    }
-
-    private void dispatchOrderFailed(UUID eventId, Map<String, String> fields) {
-        String recipient = fields.getOrDefault("userEmail", "unknown@gsswec.com");
-        String orderId = fields.getOrDefault("orderId", "");
-        sendNotification.execute(eventId, StreamNames.ORDER_FAILED, recipient,
-                EmailTemplate.ORDER_FAILED, "Order " + orderId + " could not be completed. Please try again.");
-    }
-
-    private void dispatchPaymentSucceeded(UUID eventId, Map<String, String> fields) {
-        String recipient = fields.getOrDefault("userEmail", "unknown@gsswec.com");
-        String amount = fields.getOrDefault("amount", "");
-        sendNotification.execute(eventId, StreamNames.PAYMENT_SUCCEEDED, recipient,
-                EmailTemplate.PAYMENT_SUCCEEDED, "Payment of $" + amount + " was successful.");
-    }
-
-    private void dispatchPaymentFailed(UUID eventId, Map<String, String> fields) {
-        String recipient = fields.getOrDefault("userEmail", "unknown@gsswec.com");
-        String reason = fields.getOrDefault("reason", "Unknown reason");
-        sendNotification.execute(eventId, StreamNames.PAYMENT_FAILED, recipient,
-                EmailTemplate.PAYMENT_FAILED, "Payment failed: " + reason + ". Please update your payment method.");
+        sendNotification.execute(eventId, eventType, recipient.get(), template, body);
     }
 }

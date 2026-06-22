@@ -39,6 +39,9 @@ gsswec:
     secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}
   notifications:
     from-address: ${NOTIFICATIONS_FROM:noreply@gsswec.com}
+    admin-email: ${ADMIN_NOTIFICATION_EMAIL:admin@gsswec.com}
+    users-base-url: ${USERS_BASE_URL:http://users:8081}
+    user-cache-ttl-minutes: ${USER_CACHE_TTL_MINUTES:30}
 
 springdoc:
   api-docs:
