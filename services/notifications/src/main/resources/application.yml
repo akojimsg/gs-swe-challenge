@@ -1,9 +1,53 @@
 spring:
   application:
     name: notifications
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:gsswec}
+    username: ${POSTGRES_USER:gsswec}
+    password: ${POSTGRES_PASSWORD:change_me_local_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: notifications_schema
+    open-in-view: false
+  flyway:
+    enabled: true
+    schemas: notifications_schema
+    default-schema: notifications_schema
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
 
 server:
   port: 8085
+
+gsswec:
+  jwt:
+    secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}
+  notifications:
+    from-address: ${NOTIFICATIONS_FROM:noreply@gsswec.com}
+    admin-email: ${ADMIN_NOTIFICATION_EMAIL:admin@gsswec.com}
+    users-base-url: ${USERS_BASE_URL:http://users:8081}
+    user-cache-ttl-minutes: ${USER_CACHE_TTL_MINUTES:30}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 management:
   endpoints:
