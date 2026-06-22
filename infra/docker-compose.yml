@@ -147,6 +147,32 @@ services:
     networks:
       - gsswec
 
+  notifications:
+    build:
+      <<: *svc-build
+      args:
+        SERVICE: notifications
+    image: gsswec/notifications:${IMAGE_TAG:-local}
+    container_name: gsswec-notifications
+    environment:
+      <<: *svc-env
+      MAIL_HOST: mailhog
+      MAIL_PORT: "1025"
+    ports:
+      - "${NOTIFICATIONS_PORT:-8085}:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    healthcheck:
+      <<: *svc-health
+      test: ["CMD", "curl", "-fsS", "http://localhost:8085/actuator/health"]
+    networks:
+      - gsswec
+
 volumes:
   postgres-data:
   redis-data:
