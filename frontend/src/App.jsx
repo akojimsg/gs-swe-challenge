@@ -27,6 +27,7 @@ import Forbidden from "@/pages/Forbidden";
 import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminProductForm from "@/pages/admin/AdminProductForm";
 import AdminImport from "@/pages/admin/AdminImport";
+import AdminOrders from "@/pages/admin/AdminOrders";
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/cart" element={<Cart />} />
           <Route element={<RequireAuth />}>
             <Route path="/order/:id/confirmation" element={<OrderConfirmation />} />
+            <Route path="/orders" element={<AdminOrders />} />
           </Route>
         </Route>
 
@@ -64,6 +66,7 @@ export default function App() {
             <Route path="/admin/products/new" element={<AdminProductForm mode="create" />} />
             <Route path="/admin/products/:id/edit" element={<AdminProductForm mode="edit" />} />
             <Route path="/admin/import" element={<AdminImport />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
           </Route>
         </Route>
 
