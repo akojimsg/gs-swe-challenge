@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { StockBadge } from "./StockBadge";
+import ProductImage from "./ProductImage";
 import { Button } from "@/components/ui/Button";
 import { formatPrice } from "@/lib/format";
 import { stockLevel } from "@/lib/constants";
@@ -20,6 +21,7 @@ export function ProductCard({ product, categoryLabel }) {
       sku: product.sku,
       price: product.price,
       stock: product.stock,
+      imageUrl: product.imageUrl,
     });
   };
 
@@ -28,10 +30,7 @@ export function ProductCard({ product, categoryLabel }) {
       to={`/products/${product.id}`}
       className="group flex flex-col rounded-lg border border-border bg-card transition hover:shadow-md"
     >
-      {/* image area */}
-      <div className="flex h-48 items-center justify-center rounded-t-lg bg-muted p-4">
-        <div className="text-4xl text-muted-foreground">📦</div>
-      </div>
+      <ProductImage size="card" product={product} className="rounded-b-none" />
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         {categoryLabel && (

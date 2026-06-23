@@ -14,7 +14,7 @@ import { persist } from "zustand/middleware";
 export const useCartStore = create(
   persist(
     (set, get) => ({
-      items: [], // { productId, name, sku, price, qty, stock }
+      items: [], // { productId, name, sku, price, qty, stock, imageUrl }
 
       addItem: (product, qty = 1) =>
         set((state) => {
