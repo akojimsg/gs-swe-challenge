@@ -104,7 +104,7 @@ export default function AccountDropdown() {
               <button
                 type="button"
                 className={itemClass}
-                onClick={() => notify("My Orders isn't available yet")}
+                onClick={() => go("/orders")}
               >
                 <Package className="h-4 w-4" /> My Orders
               </button>
