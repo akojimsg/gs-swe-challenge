@@ -109,12 +109,14 @@ public class ImportCatalog {
         Optional<Product> existing = products.findBySku(row.sku());
         if (existing.isPresent()) {
             Product merged = existing.get().withUpdates(
-                    row.name(), row.description(), categoryId, row.price(), row.stock(), row.weightKg(), null);
+                    row.name(), row.description(), categoryId, row.price(), row.stock(),
+                    row.weightKg(), row.imageUrl(), null);
             products.save(merged);
             return false;
         }
         products.save(Product.create(
-                row.name(), row.sku(), row.description(), categoryId, row.price(), row.stock(), row.weightKg()));
+                row.name(), row.sku(), row.description(), categoryId, row.price(), row.stock(),
+                row.weightKg(), row.imageUrl()));
         return true;
     }
 

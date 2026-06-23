@@ -49,9 +49,10 @@ public class CsvValidator {
         BigDecimal weight = parseWeight(row.get("weight_kg")).orElse(null);
         String description = sanitise(row.get("description"));
         String category = trimToNull(row.get("category")); // blank -> null (allowed)
+        String imageUrl = trimToNull(row.get("image_url")); // optional; absent -> null
 
         return Result.valid(new ValidRow(name, sku, description, category,
-                price.get(), stock.get(), weight));
+                price.get(), stock.get(), weight, imageUrl));
     }
 
     // Strip HTML tags (XSS) then trim. SQLi is handled by parameterised writes;
@@ -114,7 +115,7 @@ public class CsvValidator {
 
     public record ValidRow(
             String name, String sku, String description, String category,
-            BigDecimal price, Integer stock, BigDecimal weightKg) {
+            BigDecimal price, Integer stock, BigDecimal weightKg, String imageUrl) {
     }
 
     public record Result(ValidRow row, ImportError error) {

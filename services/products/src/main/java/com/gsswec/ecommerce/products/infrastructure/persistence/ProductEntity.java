@@ -37,6 +37,9 @@ public class ProductEntity {
     @Column(name = "weight_kg")
     private BigDecimal weightKg;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -59,12 +62,13 @@ public class ProductEntity {
         e.price = p.price();
         e.stock = p.stock();
         e.weightKg = p.weightKg();
+        e.imageUrl = p.imageUrl();
         e.active = p.active();
         return e;
     }
 
     Product toDomain() {
         return new Product(id, name, sku, description, categoryId,
-                price, stock, weightKg, active, createdAt, updatedAt);
+                price, stock, weightKg, imageUrl, active, createdAt, updatedAt);
     }
 }

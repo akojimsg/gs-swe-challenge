@@ -75,7 +75,7 @@ public class ProductController {
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody CreateProductRequest req) {
         var product = createProduct.create(new CreateProduct.Command(
                 req.name(), req.sku(), req.description(), req.category(),
-                req.price(), req.stock(), req.weightKg()));
+                req.price(), req.stock(), req.weightKg(), req.imageUrl()));
         return ResponseEntity.status(HttpStatus.CREATED).body(ProductResponse.from(product));
     }
 
@@ -100,6 +100,6 @@ public class ProductController {
 
     private static UpdateProduct.Command toCommand(UpdateProductRequest req) {
         return new UpdateProduct.Command(req.name(), req.description(), req.category(),
-                req.price(), req.stock(), req.weightKg(), req.active());
+                req.price(), req.stock(), req.weightKg(), req.imageUrl(), req.active());
     }
 }

@@ -15,5 +15,6 @@ public record UpdateProductRequest(
         @DecimalMin("0.0") BigDecimal price,
         @Min(0) Integer stock,
         BigDecimal weightKg,
+        String imageUrl,
         Boolean active) {
 }

@@ -14,5 +14,6 @@ public record CreateProductRequest(
         String category,
         @NotNull @DecimalMin("0.0") BigDecimal price,
         @NotNull @Min(0) Integer stock,
-        BigDecimal weightKg) {
+        BigDecimal weightKg,
+        String imageUrl) {
 }

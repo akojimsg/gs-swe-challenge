@@ -13,6 +13,7 @@ public record Product(
         BigDecimal price,
         Integer stock,
         BigDecimal weightKg,
+        String imageUrl,
         boolean active,
         Instant createdAt,
         Instant updatedAt) {
@@ -28,17 +29,18 @@ public record Product(
 
     public static Product create(
             String name, String sku, String description, Integer categoryId,
-            BigDecimal price, Integer stock, BigDecimal weightKg) {
+            BigDecimal price, Integer stock, BigDecimal weightKg, String imageUrl) {
         return new Product(null, name, sku, description, categoryId,
-                price, stock == null ? 0 : stock, weightKg, true, null, null);
+                price, stock == null ? 0 : stock, weightKg, imageUrl, true, null, null);
     }
 
     public Product withUpdates(
             String newName, String newDescription, Integer newCategoryId,
-            BigDecimal newPrice, Integer newStock, BigDecimal newWeightKg, Boolean newActive) {
+            BigDecimal newPrice, Integer newStock, BigDecimal newWeightKg,
+            String newImageUrl, Boolean newActive) {
         return new Product(
                 id, newName, sku, newDescription, newCategoryId,
-                newPrice, newStock, newWeightKg,
+                newPrice, newStock, newWeightKg, newImageUrl,
                 newActive == null ? active : newActive,
                 createdAt, updatedAt);
     }
