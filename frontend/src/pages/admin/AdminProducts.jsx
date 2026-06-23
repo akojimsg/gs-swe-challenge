@@ -71,12 +71,12 @@ export default function AdminProducts() {
           )}
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="brand-outline" size="sm">
             <Link to="/admin/import">
               <Upload className="h-4 w-4" /> CSV Import
             </Link>
           </Button>
-          <Button asChild size="sm">
+          <Button asChild variant="brand" size="sm">
             <Link to="/admin/products/new">
               <Plus className="h-4 w-4" /> Add product
             </Link>
@@ -89,7 +89,7 @@ export default function AdminProducts() {
           title="No products yet"
           message="Create your first product or import via CSV."
           action={
-            <Button asChild>
+            <Button asChild variant="brand">
               <Link to="/admin/products/new">Add product</Link>
             </Button>
           }
