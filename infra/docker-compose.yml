@@ -205,6 +205,25 @@ services:
     networks:
       - gsswec
 
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: gsswec/frontend:${IMAGE_TAG:-local}
+    container_name: gsswec-frontend
+    environment:
+      GATEWAY_URL: http://gateway:8080
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      <<: *svc-health
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1 || exit 1"]
+    networks:
+      - gsswec
+
 volumes:
   postgres-data:
   redis-data:
