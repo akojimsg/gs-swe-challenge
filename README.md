@@ -118,24 +118,38 @@ Everything — including each service's jar — is built **inside Docker**, so y
 ```bash
 git clone https://github.com/akojimsg/gs-swe-challenge.git
 cd gs-swe-challenge
-make up      # build images + start the stack (Postgres, Redis, Mailhog, services)
-make seed    # load the sample catalog + demo users
+make up      # build images + start the full stack (frontend, gateway, services, datastores)
+make seed    # load the sample catalogue + demo users
 ```
 
 `make up` is the single command. (It wraps `docker compose up --build -d`; you can
-run that directly if you prefer not to use `make`.) The first run builds the service
-images and may take a few minutes; subsequent runs are cached.
+run that directly if you prefer not to use `make`.) The first run builds the images
+and may take a few minutes; subsequent runs are cached.
+
+Then open the storefront at **http://localhost:3000**. The SPA reaches every API
+through the gateway, so `:3000` is the only URL you need. Verify the stack with:
 
 ```bash
-make seed    # seed sample data + test users
-make smoke   # run the smoke test against a running stack
+make ps                                # all containers "healthy"
+curl localhost:3000/api/v1/products    # SPA → gateway → products (200)
+```
+
+Other targets:
+
+```bash
 make down    # stop everything
 make logs    # tail service logs
 make ps      # show stack status
 ```
 
-`make up` starts the backend services and their datastores; the purchase flow
-runs end-to-end across them.
+### Walkthroughs
+
+Step-by-step guides live in [`docs/runbooks/`](docs/runbooks/):
+
+- [Local stack lifecycle](docs/runbooks/local-stack.md) — start, seed, verify, stop
+- [Admin user journey](docs/runbooks/admin-journey.md) — sign in as admin; product CRUD + CSV import
+- [Buyer user journey](docs/runbooks/buyer-journey.md) — browse → cart → checkout → confirmation
+- [Purchase saga demo](docs/runbooks/saga-demo.md) — happy path + payment-failure compensation
 
 ### Service URLs (local)
 
