@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner, ErrorState, EmptyState } from "@/components/common/States";
 import { StockBadge } from "@/components/product/StockBadge";
+import ProductImage from "@/components/product/ProductImage";
 import { Pagination } from "@/components/common/Pagination";
 import { useToast } from "@/components/common/Toast";
 import { formatPrice } from "@/lib/format";
@@ -99,6 +100,7 @@ export default function AdminProducts() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/50">
                 <tr>
+                  <th className="w-16 px-4 py-3 text-left font-medium">Image</th>
                   <th className="px-4 py-3 text-left font-medium">Name</th>
                   <th className="px-4 py-3 text-left font-medium">SKU</th>
                   <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Category</th>
@@ -111,6 +113,9 @@ export default function AdminProducts() {
               <tbody className="divide-y divide-border">
                 {items.map((p) => (
                   <tr key={p.id} className="hover:bg-muted/30 transition">
+                    <td className="px-4 py-3">
+                      <ProductImage size="thumb" product={p} className="h-10 w-10" />
+                    </td>
                     <td className="px-4 py-3 font-medium max-w-[180px] truncate">
                       {p.name}
                     </td>

@@ -6,11 +6,12 @@ import { useToast } from "@/components/common/Toast";
 import { StockBadge } from "@/components/product/StockBadge";
 import { QuantityStepper } from "@/components/product/QuantityStepper";
 import { ProductCard } from "@/components/product/ProductCard";
+import ProductImage from "@/components/product/ProductImage";
 import { Button } from "@/components/ui/Button";
 import { Spinner, ErrorState } from "@/components/common/States";
 import { formatPrice } from "@/lib/format";
 import { stockLevel } from "@/lib/constants";
-import { ShoppingCart, Package } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -74,6 +75,7 @@ export default function ProductDetail() {
       sku: product.sku,
       price: product.price,
       stock: product.stock,
+      imageUrl: product.imageUrl,
     }, qty);
     setAdded(true);
     toast?.(`${product.name} added to cart`);
@@ -110,10 +112,7 @@ export default function ProductDetail() {
 
       {/* two-column layout */}
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* media */}
-        <div className="flex items-center justify-center rounded-xl border border-border bg-muted p-8 lg:min-h-[400px]">
-          <Package className="h-32 w-32 text-muted-foreground/40" />
-        </div>
+        <ProductImage size="hero" product={product} className="border border-border" />
 
         {/* buy box */}
         <div className="flex flex-col gap-4">

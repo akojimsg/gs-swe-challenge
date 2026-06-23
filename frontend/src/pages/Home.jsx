@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getProducts, getCategories } from "@/api/products";
 import { ProductCard, ProductCardSkeleton } from "@/components/product/ProductCard";
+import { picsumUrl } from "@/components/product/ProductImage";
 import { Button } from "@/components/ui/Button";
-import { ShieldCheck, RefreshCw, Headphones, Truck } from "lucide-react";
+import { ShieldCheck, RefreshCw, Headphones, Truck, ChevronRight } from "lucide-react";
 
 const VALUE_PROPS = [
   { icon: Truck, title: "Fast delivery", text: "On orders over $50" },
@@ -69,22 +70,37 @@ export default function Home() {
           ))}
         </section>
 
-        {/* shop by category */}
+        {/* shop by top categories — circular tiles */}
         {categories.length > 0 && (
           <section className="mx-auto mb-10 max-w-7xl">
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="font-display text-xl font-extrabold">Shop by category</h2>
-              <Link to="/products" className="text-sm text-brand hover:underline">View all</Link>
+            <div className="mb-6 flex items-end justify-between">
+              <h2 className="font-display text-xl font-extrabold">
+                <span className="text-muted-foreground">Shop From </span>
+                <span className="border-b-2 border-brand text-brand">Top Categories</span>
+              </h2>
+              <Link
+                to="/products"
+                className="flex items-center text-sm font-medium text-brand hover:underline"
+              >
+                View All <ChevronRight className="h-4 w-4" />
+              </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {categories.map((cat) => (
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {categories.slice(0, 8).map((cat) => (
                 <Link
-                  key={cat.name}
+                  key={cat.id ?? cat.name}
                   to={`/products?category=${encodeURIComponent(cat.name)}`}
-                  className="flex shrink-0 flex-col items-center gap-2 rounded-xl border border-border bg-card px-5 py-4 text-sm font-medium hover:border-brand hover:text-brand transition"
+                  className="flex w-[132px] shrink-0 flex-col items-center gap-2"
                 >
-                  <span className="text-2xl">🏷️</span>
-                  {cat.name}
+                  <div className="flex h-[132px] w-[132px] items-center justify-center overflow-hidden rounded-full bg-white ring-2 ring-transparent transition-all hover:ring-brand">
+                    <img
+                      src={picsumUrl(`cat-${cat.id ?? cat.name}`, 120, 120)}
+                      alt={cat.name}
+                      loading="lazy"
+                      className="h-[76px] w-[76px] object-contain"
+                    />
+                  </div>
+                  <p className="text-center text-sm font-medium text-foreground">{cat.name}</p>
                 </Link>
               ))}
             </div>

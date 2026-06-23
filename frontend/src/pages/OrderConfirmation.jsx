@@ -4,6 +4,7 @@ import { getOrder } from "@/api/orders";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner, ErrorState } from "@/components/common/States";
+import ProductImage from "@/components/product/ProductImage";
 import { formatMoney } from "@/lib/format";
 import { ORDER_STATUS, ORDER_STATUS_COLOR, ORDER_TERMINAL, PAYMENT_POLL_INTERVAL_MS, PAYMENT_POLL_MAX_ATTEMPTS } from "@/lib/constants";
 import { CheckCircle2, XCircle, Clock, ShoppingBag } from "lucide-react";
@@ -115,6 +116,11 @@ export default function OrderConfirmation() {
           <ul className="divide-y divide-border px-5">
             {order.items.map((item) => (
               <li key={item.id ?? item.productId} className="flex items-center justify-between gap-3 py-3 text-sm">
+                <ProductImage
+                  size="thumb"
+                  product={{ id: item.productId, name: item.name, imageUrl: null }}
+                  className="h-12 w-12 shrink-0"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium line-clamp-1">{item.name}</p>
                   <p className="text-xs text-muted-foreground">SKU: {item.sku} · Qty: {item.quantity}</p>

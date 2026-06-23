@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useAuthStore } from "@/store/auth";
 import { QuantityStepper } from "@/components/product/QuantityStepper";
+import ProductImage from "@/components/product/ProductImage";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/common/States";
 import { formatPrice, formatMoney } from "@/lib/format";
@@ -13,10 +14,11 @@ function CartLineItem({ item }) {
 
   return (
     <div className="flex gap-4 border-b border-border py-4">
-      {/* image placeholder */}
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-muted text-2xl">
-        📦
-      </div>
+      <ProductImage
+        size="thumb"
+        product={{ id: item.productId, name: item.name, imageUrl: item.imageUrl }}
+        className="h-20 w-20 shrink-0"
+      />
 
       <div className="flex flex-1 flex-col gap-1 min-w-0">
         <Link
