@@ -147,8 +147,6 @@ services:
     networks:
       - gsswec
 
-  # The single edge (:8080): routes /api/v1/** to the services by in-network name,
-  # validates JWTs, and propagates a trace id. The SPA talks only to this.
   gateway:
     build:
       <<: *svc-build
@@ -159,7 +157,6 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       JWT_SECRET: ${JWT_SECRET:-change_me_base64_256_bit_secret_change_me_please}
-      # Resolve frozen route placeholders to compose service names.
       USERS_URI: http://users:8081
       PRODUCTS_URI: http://products:8082
       ORDERS_URI: http://orders:8083

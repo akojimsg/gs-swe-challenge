@@ -21,10 +21,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-// End-to-end edge behaviour with the real gateway context. Upstreams are stubbed by
-// a single WireMock server; route URIs are pointed at it via @DynamicPropertySource,
-// so this verifies routing + public-vs-protected + identity forwarding + trace id
-// without booting the actual services.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GatewayRoutingIT {
 
@@ -38,7 +34,6 @@ class GatewayRoutingIT {
     static void startUpstream() {
         upstream = new WireMockServer(WireMockConfiguration.options().dynamicPort());
         upstream.start();
-        // Products (public read) and Orders (protected) both echo 200 from the stub.
         upstream.stubFor(get(urlPathEqualTo("/api/v1/products"))
                 .willReturn(aResponse().withStatus(200).withBody("[]")));
         upstream.stubFor(get(urlPathEqualTo("/api/v1/orders"))
@@ -52,9 +47,6 @@ class GatewayRoutingIT {
 
     @DynamicPropertySource
     static void routes(DynamicPropertyRegistry registry) {
-        // The frozen routes use ${PRODUCTS_URI:...} / ${ORDERS_URI:...} placeholders,
-        // so point those at WireMock rather than overriding the indexed route list
-        // (which would break Spring's list binding).
         String base = "http://localhost:" + upstream.port();
         registry.add("PRODUCTS_URI", () -> base);
         registry.add("ORDERS_URI", () -> base);
@@ -76,9 +68,6 @@ class GatewayRoutingIT {
 
     @Test
     void protectedRouteWithoutTokenIsRejectedAtEdge() {
-        // 401 at the edge — the filter rejects before routing, so the upstream is
-        // never consulted. (Status alone proves this; cross-test WireMock counts are
-        // unreliable under shared state, so we assert on the response.)
         client.get().uri("/api/v1/orders").exchange()
                 .expectStatus().isUnauthorized();
     }

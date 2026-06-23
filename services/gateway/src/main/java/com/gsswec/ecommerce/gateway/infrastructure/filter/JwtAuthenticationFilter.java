@@ -21,14 +21,6 @@ import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Mono;
 
-// Edge JWT validation (reactive WebFilter). Mirrors the services' verification
-// logic (HS256 with the shared secret, claims sub/role) but in WebFlux form.
-//
-// - Requests matching the frozen public-routes allow-list bypass auth entirely.
-// - Otherwise a valid Bearer token is required; verified claims are forwarded
-//   downstream as X-User-Id / X-User-Role so services authorize without re-parsing.
-// - Missing/invalid token on a protected route → 401 at the edge (request never
-//   reaches the upstream).
 @Component
 public class JwtAuthenticationFilter implements WebFilter, Ordered {
 
@@ -51,9 +43,6 @@ public class JwtAuthenticationFilter implements WebFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
 
-        // The edge only authenticates the API surface. Non-/api paths (actuator
-        // health/metrics, etc.) are infra, not routed business endpoints — let them
-        // through untouched.
         String path = request.getPath().pathWithinApplication().value();
         if (!path.startsWith("/api/") || isPublic(request)) {
             return chain.filter(exchange);
@@ -69,7 +58,6 @@ public class JwtAuthenticationFilter implements WebFilter, Ordered {
                     .parseSignedClaims(header.substring(BEARER_PREFIX.length()))
                     .getPayload();
 
-            // Forward identity downstream; strip any client-supplied spoof first.
             ServerHttpRequest mutated = request.mutate()
                     .headers(h -> {
                         h.remove("X-User-Id");
@@ -99,7 +87,6 @@ public class JwtAuthenticationFilter implements WebFilter, Ordered {
         return exchange.getResponse().setComplete();
     }
 
-    // Run before routing so unauthenticated protected requests never hit an upstream.
     @Override
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE + 100;

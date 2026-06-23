@@ -23,8 +23,6 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-// Unit coverage of the edge auth rules: public bypass, missing/invalid/valid token,
-// and downstream identity forwarding. No Spring context — pure filter logic.
 class JwtAuthenticationFilterTest {
 
     private static final String SECRET = "test-secret-that-is-at-least-256-bits-long-for-hs256!!";

@@ -79,9 +79,6 @@ gateway:
     import:   { limit: 5,   window: 1h, key: userId }
     default:  { limit: 60,  window: 1m, key: userId }
 
-# Shared HS256 signing secret — the edge VERIFIES tokens minted by Users using the
-# same key every service uses. Default is the dev placeholder (≥256-bit for HS256);
-# override via JWT_SECRET in real environments.
 gsswec:
   jwt:
     secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}

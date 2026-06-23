@@ -9,10 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-// Generates/propagates a trace id across the edge so a request can be correlated
-// end-to-end. Reuses an inbound X-Request-Id if the caller already set one;
-// otherwise mints one. The id is forwarded to the upstream and echoed on the
-// response, and added to the Reactor context for correlated logging.
 @Component
 public class RequestIdFilter implements GlobalFilter, Ordered {
 
@@ -35,7 +31,6 @@ public class RequestIdFilter implements GlobalFilter, Ordered {
                 .contextWrite(ctx -> ctx.put(TRACE_CONTEXT_KEY, traceId));
     }
 
-    // Highest precedence: stamp the trace id before anything else runs.
     @Override
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE;
