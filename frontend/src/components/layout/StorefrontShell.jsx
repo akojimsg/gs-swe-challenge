@@ -5,6 +5,7 @@ import { useCartStore } from "@/store/cart";
 import { useAuthStore } from "@/store/auth";
 import { getCategories } from "@/api/products";
 import { logout as apiLogout } from "@/api/auth";
+import Footer from "@/components/layout/Footer";
 
 export default function StorefrontShell() {
   const count = useCartStore((s) => s.count());
@@ -155,38 +156,7 @@ export default function StorefrontShell() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-border bg-muted/50 px-4 py-8 text-sm text-muted-foreground md:px-8">
-        <div className="mx-auto grid max-w-7xl gap-6 sm:grid-cols-3">
-          <div>
-            <p className="mb-2 font-display font-extrabold text-foreground">
-              United<span className="text-brand">Deals</span>
-            </p>
-            <p className="text-xs">Demo e-commerce storefront — gs-swe-challenge.</p>
-          </div>
-          <div>
-            <p className="mb-2 font-semibold text-foreground">Shop</p>
-            <ul className="space-y-1 text-xs">
-              <li><Link to="/products" className="hover:text-brand">All Products</Link></li>
-              <li><Link to="/cart" className="hover:text-brand">Cart</Link></li>
-            </ul>
-          </div>
-          <div>
-            <p className="mb-2 font-semibold text-foreground">Account</p>
-            <ul className="space-y-1 text-xs">
-              {isAuthed ? (
-                <li>
-                  <button onClick={handleLogout} className="hover:text-brand">Sign out</button>
-                </li>
-              ) : (
-                <>
-                  <li><Link to="/login" className="hover:text-brand">Sign in</Link></li>
-                  <li><Link to="/register" className="hover:text-brand">Create account</Link></li>
-                </>
-              )}
-            </ul>
-          </div>
-        </div>
-      </footer>
+      <Footer categories={categories} onLogout={handleLogout} isAuthed={isAuthed} />
     </div>
   );
 }
