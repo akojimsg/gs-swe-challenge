@@ -6,6 +6,7 @@ plugins {
 ext {
     springCloudVersion = "2023.0.3"
     jjwtVersion = "0.12.6"
+    springdocVersion = "2.6.0"
 }
 
 dependencyManagement {
@@ -27,6 +28,7 @@ dependencies {
     runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 
     implementation "io.micrometer:micrometer-registry-prometheus"
+    implementation "org.springdoc:springdoc-openapi-starter-webflux-ui:${springdocVersion}"
 
     testImplementation "org.springframework.boot:spring-boot-starter-test"
     testImplementation "org.springframework.security:spring-security-test"

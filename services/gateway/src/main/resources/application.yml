@@ -42,6 +42,49 @@ spring:
         predicates:
         - Path=/api/v1/notifications/**
 
+      # API-docs proxy routes — forwards /v3/api-docs/<service> to the owning
+      # service so the Swagger UI aggregator served at /swagger-ui.html can
+      # fetch each spec without CORS issues. These bypass JWT validation (see
+      # public-routes below).
+      - id: api-docs-users
+        uri: ${USERS_URI:http://localhost:8081}
+        predicates:
+        - Path=/v3/api-docs/users
+        filters:
+        - RewritePath=/v3/api-docs/users,/v3/api-docs
+      - id: api-docs-products
+        uri: ${PRODUCTS_URI:http://localhost:8082}
+        predicates:
+        - Path=/v3/api-docs/products
+        filters:
+        - RewritePath=/v3/api-docs/products,/v3/api-docs
+      - id: api-docs-orders
+        uri: ${ORDERS_URI:http://localhost:8083}
+        predicates:
+        - Path=/v3/api-docs/orders
+        filters:
+        - RewritePath=/v3/api-docs/orders,/v3/api-docs
+      - id: api-docs-payments
+        uri: ${PAYMENTS_URI:http://localhost:8084}
+        predicates:
+        - Path=/v3/api-docs/payments
+        filters:
+        - RewritePath=/v3/api-docs/payments,/v3/api-docs
+      - id: api-docs-notifications
+        uri: ${NOTIFICATIONS_URI:http://localhost:8085}
+        predicates:
+        - Path=/v3/api-docs/notifications
+        filters:
+        - RewritePath=/v3/api-docs/notifications,/v3/api-docs
+
+      # Redirect bare root to the Swagger UI so localhost:8080 is useful.
+      - id: root-redirect
+        uri: no://op
+        predicates:
+        - Path=/
+        filters:
+        - RedirectTo=302, /swagger-ui.html
+
 server:
   port: 8080
 
@@ -70,6 +113,12 @@ gateway:
     path: /api/v1/products/{id}    # public product detail
   - method: GET
     path: /api/v1/categories       # public category list
+  - method: GET
+    path: /v3/api-docs/**          # OpenAPI specs (Swagger aggregator)
+  - method: GET
+    path: /swagger-ui/**           # Swagger UI static assets
+  - method: GET
+    path: /swagger-ui.html         # Swagger UI entry point
 
   # Bucket4j rate limits (buckets held in Redis), keyed per route → 429 on exceed.
   rate-limits:
@@ -82,3 +131,19 @@ gateway:
 gsswec:
   jwt:
     secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Users Service
+        url: /v3/api-docs/users
+      - name: Products Service
+        url: /v3/api-docs/products
+      - name: Orders Service
+        url: /v3/api-docs/orders
+      - name: Payments Service
+        url: /v3/api-docs/payments
+      - name: Notifications Service
+        url: /v3/api-docs/notifications
+    urls-primary-name: Products Service
+  use-management-port: false
