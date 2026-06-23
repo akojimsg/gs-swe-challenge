@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
-import { ShoppingCart, User, LogOut, Settings } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useAuthStore } from "@/store/auth";
 import { getCategories } from "@/api/products";
 import { logout as apiLogout } from "@/api/auth";
+import AccountDropdown from "@/components/layout/AccountDropdown";
 import Footer from "@/components/layout/Footer";
 
 export default function StorefrontShell() {
   const count = useCartStore((s) => s.count());
-  const { accessToken, user, logout } = useAuthStore();
+  const { accessToken, logout } = useAuthStore();
   const isAuthed = !!accessToken;
-  const isAdmin = user?.role === "ADMIN";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState([]);
@@ -79,39 +79,7 @@ export default function StorefrontShell() {
 
           {/* right cluster */}
           <nav className="flex shrink-0 items-center gap-3 text-sm">
-            {isAdmin && (
-              <Link
-                to="/admin/products"
-                className="hidden items-center gap-1 text-muted-foreground hover:text-brand sm:flex"
-              >
-                <Settings className="h-4 w-4" />
-                <span className="hidden lg:inline">Admin</span>
-              </Link>
-            )}
-
-            {isAuthed ? (
-              <div className="flex items-center gap-2">
-                <span className="hidden text-xs text-muted-foreground lg:inline">
-                  Hi, {user?.firstName}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1 text-muted-foreground hover:text-brand"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden lg:inline">Sign out</span>
-                </button>
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                className="flex items-center gap-1 text-muted-foreground hover:text-brand"
-              >
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign in</span>
-              </Link>
-            )}
+            <AccountDropdown />
 
             <Link
               to="/cart"
