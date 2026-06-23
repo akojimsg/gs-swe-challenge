@@ -68,7 +68,7 @@ class StockGrpcIT {
 
     private Product seed(String sku, int stock) {
         return products.save(Product.create("Seed " + sku, sku, "desc", null,
-                new BigDecimal("9.99"), stock, new BigDecimal("0.1")));
+                new BigDecimal("9.99"), stock, new BigDecimal("0.1"), null));
     }
 
     @Test

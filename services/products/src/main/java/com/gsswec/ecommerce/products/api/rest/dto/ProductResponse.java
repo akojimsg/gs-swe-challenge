@@ -13,10 +13,11 @@ public record ProductResponse(
         BigDecimal price,
         Integer stock,
         BigDecimal weightKg,
+        String imageUrl,
         boolean active) {
 
     public static ProductResponse from(Product p) {
         return new ProductResponse(p.id(), p.name(), p.sku(), p.description(),
-                p.categoryId(), p.price(), p.stock(), p.weightKg(), p.active());
+                p.categoryId(), p.price(), p.stock(), p.weightKg(), p.imageUrl(), p.active());
     }
 }

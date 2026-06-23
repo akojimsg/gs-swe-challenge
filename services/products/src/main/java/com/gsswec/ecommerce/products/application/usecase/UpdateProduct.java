@@ -47,6 +47,7 @@ public class UpdateProduct {
         BigDecimal price = resolve(c.price(), current.price(), partial);
         Integer stock = resolve(c.stock(), current.stock(), partial);
         BigDecimal weightKg = resolve(c.weightKg(), current.weightKg(), partial);
+        String imageUrl = resolve(c.imageUrl(), current.imageUrl(), partial);
         Boolean active = resolve(c.active(), current.active(), partial);
 
         Integer categoryId = current.categoryId();
@@ -57,7 +58,7 @@ public class UpdateProduct {
 
         Product updated = products.save(current.withUpdates(
                 name != null ? name.trim() : current.name(),
-                description, categoryId, price, stock, weightKg, active));
+                description, categoryId, price, stock, weightKg, imageUrl, active));
 
         cache.evictAll();
 
@@ -98,6 +99,6 @@ public class UpdateProduct {
 
     public record Command(
             String name, String description, String category,
-            BigDecimal price, Integer stock, BigDecimal weightKg, Boolean active) {
+            BigDecimal price, Integer stock, BigDecimal weightKg, String imageUrl, Boolean active) {
     }
 }

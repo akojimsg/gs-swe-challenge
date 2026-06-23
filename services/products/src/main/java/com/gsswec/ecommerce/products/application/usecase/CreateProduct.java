@@ -41,7 +41,7 @@ public class CreateProduct {
         Integer categoryId = resolveCategory.toIdOrNull(c.category());
         Product saved = products.save(Product.create(
                 c.name().trim(), sku, c.description(), categoryId,
-                c.price(), c.stock(), c.weightKg()));
+                c.price(), c.stock(), c.weightKg(), c.imageUrl()));
 
         cache.evictAll();
         events.publish(StreamNames.PRODUCT_CREATED, new ProductCreatedEvent(
@@ -54,6 +54,6 @@ public class CreateProduct {
 
     public record Command(
             String name, String sku, String description, String category,
-            BigDecimal price, Integer stock, BigDecimal weightKg) {
+            BigDecimal price, Integer stock, BigDecimal weightKg, String imageUrl) {
     }
 }

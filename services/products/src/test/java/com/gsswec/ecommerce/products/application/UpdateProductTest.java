@@ -48,7 +48,7 @@ class UpdateProductTest {
 
     private Product existing() {
         return new Product(id, "Old Name", "SKU-1", "old desc", 1,
-                new BigDecimal("10.00"), 5, new BigDecimal("0.5"), true,
+                new BigDecimal("10.00"), 5, new BigDecimal("0.5"), null, true,
                 Instant.now(clock), Instant.now(clock));
     }
 
@@ -57,7 +57,7 @@ class UpdateProductTest {
         when(products.findById(id)).thenReturn(Optional.of(existing()));
 
         // PATCH: only price provided.
-        var cmd = new UpdateProduct.Command(null, null, null, new BigDecimal("12.50"), null, null, null);
+        var cmd = new UpdateProduct.Command(null, null, null, new BigDecimal("12.50"), null, null, null, null);
         Product result = updateProduct.update(id, cmd, true);
 
         assertThat(result.price()).isEqualByComparingTo("12.50");
@@ -76,7 +76,7 @@ class UpdateProductTest {
         when(products.findById(id)).thenReturn(Optional.of(existing()));
 
         // PATCH price to its current value → no change.
-        var cmd = new UpdateProduct.Command(null, null, null, new BigDecimal("10.00"), null, null, null);
+        var cmd = new UpdateProduct.Command(null, null, null, new BigDecimal("10.00"), null, null, null, null);
         updateProduct.update(id, cmd, true);
 
         verify(events, never()).publish(anyString(), any());

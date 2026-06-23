@@ -110,4 +110,20 @@ class CsvValidatorTest {
         assertThat(r.isValid()).isFalse();
         assertThat(r.error().field()).isEqualTo("stock");
     }
+
+    @Test
+    void capturesOptionalImageUrlWhenPresent() {
+        Map<String, String> m = row("Camera", "CAM-1", "d", "Electronics", "499.00", "12", "0.6");
+        m.put("image_url", "https://example.com/cam.jpg");
+        var r = validator.validate(1, m);
+        assertThat(r.isValid()).isTrue();
+        assertThat(r.row().imageUrl()).isEqualTo("https://example.com/cam.jpg");
+    }
+
+    @Test
+    void imageUrlIsNullWhenColumnAbsent() {
+        var r = validator.validate(1, row("Camera", "CAM-2", "d", "Electronics", "499.00", "12", "0.6"));
+        assertThat(r.isValid()).isTrue();
+        assertThat(r.row().imageUrl()).isNull();
+    }
 }

@@ -257,6 +257,10 @@ components:
           format: int32
         weightKg:
           type: number
+        imageUrl:
+          type: string
+          nullable: true
+          description: Absolute URL to the product image. Null when not provided.
         active:
           type: boolean
     ProductResponse:
@@ -281,6 +285,10 @@ components:
           format: int32
         weightKg:
           type: number
+        imageUrl:
+          type: string
+          nullable: true
+          description: Absolute URL to the product image. Null when not provided.
         active:
           type: boolean
     CreateProductRequest:
@@ -313,6 +321,10 @@ components:
           format: int32
         weightKg:
           type: number
+        imageUrl:
+          type: string
+          nullable: true
+          description: Absolute URL to the product image. Null when not provided.
     ImportError:
       type: object
       properties:
