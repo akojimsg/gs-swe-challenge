@@ -78,3 +78,7 @@ gateway:
     orders:   { limit: 20,  window: 1m, key: userId }
     import:   { limit: 5,   window: 1h, key: userId }
     default:  { limit: 60,  window: 1m, key: userId }
+
+gsswec:
+  jwt:
+    secret: ${JWT_SECRET:change_me_base64_256_bit_secret_change_me_please}
