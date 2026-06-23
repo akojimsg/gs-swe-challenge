@@ -11,6 +11,22 @@ tags:
   description: Order placement and lifecycle
 paths:
   /api/v1/orders:
+    get:
+      tags:
+      - Orders
+      summary: "List orders — own for a BUYER, all for an ADMIN"
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderResponse"
+      security:
+      - bearerAuth: []
     post:
       tags:
       - Orders
@@ -29,12 +45,84 @@ paths:
               $ref: "#/components/schemas/PlaceOrderRequest"
         required: true
       responses:
-        "409":
-          description: Insufficient stock
         "400":
           description: Missing Idempotency-Key or invalid body
         "201":
           description: Order placed; order.placed published
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "409":
+          description: Insufficient stock
+      security:
+      - bearerAuth: []
+  /api/v1/orders/{id}/status:
+    patch:
+      tags:
+      - Orders
+      summary: "Change an order's status [ADMIN]; enforces the lifecycle state machine"
+      operationId: changeStatus
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeStatusRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+      security:
+      - bearerAuth: []
+  /api/v1/orders/{id}:
+    get:
+      tags:
+      - Orders
+      summary: "Get an order by id (own for a BUYER, any for an ADMIN)"
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+      security:
+      - bearerAuth: []
+  /api/v1/orders/{id}/cancel:
+    delete:
+      tags:
+      - Orders
+      summary: "Cancel an order while PENDING [BUYER]; publishes order.cancelled"
+      operationId: cancel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
           content:
             '*/*':
               schema:
@@ -96,6 +184,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Item"
+    ChangeStatusRequest:
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - PENDING
+          - AWAITING_PAYMENT
+          - PAID
+          - FAILED
+          - CANCELLED
   securitySchemes:
     bearerAuth:
       type: http

@@ -11,6 +11,8 @@ tags:
   description: Self-service profile and admin user management
 - name: Authentication
   description: "Registration, login, and token issuance"
+- name: Internal
+  description: Service-to-service endpoints (private network only)
 paths:
   /api/v1/auth/register:
     post:
@@ -155,6 +157,26 @@ paths:
                 $ref: "#/components/schemas/UserResponse"
       security:
       - bearerAuth: []
+  /internal/users/{id}/email:
+    get:
+      tags:
+      - Internal
+      summary: Resolve a user's email by id (internal)
+      operationId: emailById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserEmailResponse"
   /api/v1/users:
     get:
       tags:
@@ -294,6 +316,14 @@ components:
         lastName:
           maxLength: 100
           minLength: 0
+          type: string
+    UserEmailResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
           type: string
     PagedResponseUserResponse:
       type: object
