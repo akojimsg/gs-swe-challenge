@@ -142,14 +142,16 @@ make logs    # tail service logs
 make ps      # show stack status
 ```
 
-### Walkthroughs
+### Walkthroughs (TL;DR)
 
-Step-by-step guides live in [`docs/runbooks/`](docs/runbooks/):
+Step-by-step guides live in [`docs/runbooks/`](docs/runbooks/) — at a glance:
 
-- [Local stack lifecycle](docs/runbooks/local-stack.md) — start, seed, verify, stop
-- [Admin user journey](docs/runbooks/admin-journey.md) — sign in as admin; product CRUD + CSV import
-- [Buyer user journey](docs/runbooks/buyer-journey.md) — browse → cart → checkout → confirmation
-- [Purchase saga demo](docs/runbooks/saga-demo.md) — happy path + payment-failure compensation
+| Goal | Gist | Guide |
+|------|------|-------|
+| Run the stack | `make up && make seed`, verify, `make down` | [local-stack](docs/runbooks/local-stack.md) |
+| Admin journey | sign in as admin → product CRUD + CSV import | [admin-journey](docs/runbooks/admin-journey.md) |
+| Buyer journey | browse → cart → checkout → confirmation | [buyer-journey](docs/runbooks/buyer-journey.md) |
+| Purchase saga | happy path + payment-failure compensation | [saga-demo](docs/runbooks/saga-demo.md) |
 
 ### Service URLs (local)
 
