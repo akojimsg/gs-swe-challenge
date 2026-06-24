@@ -10,7 +10,9 @@ Redis Streams (EDA) · Saga choreography · PostgreSQL · gRPC · React.
 ## Quickstart
 
 New here? Run `make up && make seed`, open the storefront at
-**http://localhost:3000**, then follow a guide in [`docs/runbooks/`](docs/runbooks/):
+**http://localhost:3000**, and sign in as **`admin@gsswec.com` / `admin123`**
+(or buyer **`buyer@gsswec.com` / `buyer123`**). Then follow a guide in
+[`docs/runbooks/`](docs/runbooks/):
 
 | Goal | Gist | Guide |
 |------|------|-------|
