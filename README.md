@@ -7,6 +7,22 @@ Redis Streams (EDA) · Saga choreography · PostgreSQL · gRPC · React.
 
 ---
 
+## Quickstart
+
+New here? Run `make up && make seed`, open the storefront at
+**http://localhost:3000**, then follow a guide in [`docs/runbooks/`](docs/runbooks/):
+
+| Goal | Gist | Guide |
+|------|------|-------|
+| Run the stack | `make up && make seed`, verify, `make down` | [local-stack](docs/runbooks/local-stack.md) |
+| Admin journey | sign in as admin → product CRUD + CSV import | [admin-journey](docs/runbooks/admin-journey.md) |
+| Buyer journey | browse → cart → checkout → confirmation | [buyer-journey](docs/runbooks/buyer-journey.md) |
+| Purchase saga | happy path + payment-failure compensation | [saga-demo](docs/runbooks/saga-demo.md) |
+
+Full setup details are in [Getting started](#getting-started) below.
+
+---
+
 ## Engineering philosophy
 
 This platform is deliberately built beyond the minimum needed to stand up a
@@ -141,17 +157,6 @@ make down    # stop everything
 make logs    # tail service logs
 make ps      # show stack status
 ```
-
-### Walkthroughs (TL;DR)
-
-Step-by-step guides live in [`docs/runbooks/`](docs/runbooks/) — at a glance:
-
-| Goal | Gist | Guide |
-|------|------|-------|
-| Run the stack | `make up && make seed`, verify, `make down` | [local-stack](docs/runbooks/local-stack.md) |
-| Admin journey | sign in as admin → product CRUD + CSV import | [admin-journey](docs/runbooks/admin-journey.md) |
-| Buyer journey | browse → cart → checkout → confirmation | [buyer-journey](docs/runbooks/buyer-journey.md) |
-| Purchase saga | happy path + payment-failure compensation | [saga-demo](docs/runbooks/saga-demo.md) |
 
 ### Service URLs (local)
 
