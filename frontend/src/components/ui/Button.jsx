@@ -3,6 +3,7 @@
  * replace/extend this with the full shadcn `button` — keep the variant API stable.
  * Default variant = near-black --primary CTA (Figma); `brand` = orange accent.
  */
+import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 
@@ -29,8 +30,9 @@ const buttonVariants = cva(
   },
 );
 
-export function Button({ className, variant, size, ...props }) {
-  return <button className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+export function Button({ className, variant, size, asChild = false, ...props }) {
+  const Comp = asChild ? Slot : "button";
+  return <Comp className={cn(buttonVariants({ variant, size }), className)} {...props} />;
 }
 
 export { buttonVariants };
