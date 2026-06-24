@@ -28,6 +28,7 @@ import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminProductForm from "@/pages/admin/AdminProductForm";
 import AdminImport from "@/pages/admin/AdminImport";
 import AdminOrders from "@/pages/admin/AdminOrders";
+import AdminNotifications from "@/pages/admin/AdminNotifications";
 
 export default function App() {
   return (
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="/admin/products/:id/edit" element={<AdminProductForm mode="edit" />} />
             <Route path="/admin/import" element={<AdminImport />} />
             <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
           </Route>
         </Route>
 

@@ -11,7 +11,7 @@ const NAV = [
   { to: "/admin/products", label: "Products" },
   { to: "/admin/import", label: "CSV Import" },
   { to: "/admin/orders", label: "Orders" },
-  { to: "/admin/notifications", label: "Notifications (ext)" },
+  { to: "/admin/notifications", label: "Notifications" },
 ];
 
 export default function AdminShell() {
